@@ -19,7 +19,11 @@ namespace ChessChallenge.Application
         {
             Human,
             MyBot,
-            EvilBot
+            EvilBot,
+            JacquesBot,
+            StockFish0,
+            StockFish1,
+            StockFish2,
         }
 
         // Game state
@@ -209,6 +213,10 @@ namespace ChessChallenge.Application
             {
                 PlayerType.MyBot => new ChessPlayer(new MyBot(), type, GameDurationMilliseconds),
                 PlayerType.EvilBot => new ChessPlayer(new EvilBot(), type, GameDurationMilliseconds),
+                PlayerType.JacquesBot => new ChessPlayer(new JacquesBot(), type, GameDurationMilliseconds),
+                PlayerType.StockFish0 => new ChessPlayer(new StockFishBot(0), type, GameDurationMilliseconds),
+                PlayerType.StockFish1 => new ChessPlayer(new StockFishBot(1), type, GameDurationMilliseconds),
+                PlayerType.StockFish2 => new ChessPlayer(new StockFishBot(2), type, GameDurationMilliseconds),
                 _ => new ChessPlayer(new HumanPlayer(boardUI), type)
             };
         }

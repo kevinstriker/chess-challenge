@@ -10,10 +10,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Raylib-cs" Version="4.5.0.2" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Reference Include="Microsoft.CodeAnalysis">
       <HintPath>src\Token Counter\Microsoft.CodeAnalysis.dll</HintPath>
     </Reference>
@@ -29,7 +25,7 @@
     <Compile Update="src\Framework\Application\UI\BotBrainCapacityUI.cs">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Compile>
-    <Compile Update="src\Evil Bot\EvilBot.cs">
+    <Compile Update="src\Evil Bot\StockFishBot.cs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Compile>
   </ItemGroup>
@@ -55,6 +51,11 @@
 
   <ItemGroup>
     <None Include="..\.editorconfig" Link=".editorconfig" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Raylib-cs" Version="4.5.0.2" />
+    <PackageReference Include="Stockfish.NET" Version="1.0.7" />
   </ItemGroup>
 
 </Project>
