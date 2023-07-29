@@ -57,12 +57,13 @@ public class MyBot : IChessBot
     
     private int Search(int depth, int ply, int alpha, int beta)
     {
-        _principleLines[ply].Length = 0; // To prevent q search adding more depth
-        
-        if (_timer.MillisecondsElapsedThisTurn > TimeLimit) return -Checkmate;
+        _principleLines[ply].Length = 0; // To prevent q search adding more depth                              
+
+        if (_timer.MillisecondsElapsedThisTurn > TimeLimit) return 0; // We can return any number since this depth will break anyways
+        if (_board.IsDraw()) return 0;                                  
         if (_board.IsInCheckmate()) return -Checkmate + ply;
-        if (_board.IsDraw()) return 0;
-        if (depth <= 0) return Eval();
+        
+        if (depth <= 0) return Eval();                                  
         
         Move[] moves = _board.GetLegalMoves();
         
@@ -117,7 +118,7 @@ public class MyBot : IChessBot
                 ulong bb =_board.GetPieceBitboard((PieceType)pieceType, colorIndex != 0);
                 while (bb > 0)
                 {
-                    Square square = new Square(BitboardHelper.ClearAndGetIndexOfLSB(ref bb) ^ (colorIndex != 0 ? 56 : 0));
+                    Square square = new Square(BitboardHelper.ClearAndGetIndexOfLSB(ref bb) ^ (colorIndex != 0 ? 0 : 56));
                     score[colorIndex] += _pieceValue[pieceType];
                 }
             }
