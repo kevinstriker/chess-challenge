@@ -1,5 +1,5 @@
-﻿using System.Linq;
-using System;
+﻿using System;
+using System.Collections.Generic;
 using ChessChallenge.API;
 
 public class MyBot : IChessBot
@@ -9,7 +9,7 @@ public class MyBot : IChessBot
 
     // Constants
     private const int Checkmate = 100000;
-    private const int TimeLimit = 1000;
+    private const int TimeLimit = 100;
     
     // Globals to save tokens
     private Board _board;
@@ -24,22 +24,28 @@ public class MyBot : IChessBot
 
     public Move Think(Board boardInput, Timer timerInput)
     {
+        // Debug
+        for (int i = 0; i < 128; i++) _principleLines[i] = new PrincipleLine();
+        
+        // Globalise so we're able to save tokens (parameter passing takes more space)
         _board = boardInput;
         _timer = timerInput;
-
-        _bestMove = Move.NullMove;
         
-        for (int i = 0; i < 128; i++) _principleLines[i] = new PrincipleLine();
+        _bestMove = Move.NullMove;
         
         for (int depth = 1; depth < 100; depth++)
         {
             _nodes = 0;
             _qnodes = 0;
-            int score = Negamax(depth, 0, -Checkmate, Checkmate);
+            
+            // Negamax alpha beta algorithm to search the best move available
+            int score = Search(depth, 0, -Checkmate, Checkmate);
 
+            // If we're breaking out of our search do not use this depth since it was incomplete 
             if (_timer.MillisecondsElapsedThisTurn > TimeLimit) 
                 break;
-
+            
+            // We reached here so our current depth move is our best / most informed move
             _bestMove = _depthMove;
             
             DebugHelper.LogDepth(depth, score, _nodes, 0, _timer, _principleLines, _bestMove);
@@ -48,9 +54,8 @@ public class MyBot : IChessBot
         
         return _bestMove.IsNull ? _board.GetLegalMoves()[0] : _bestMove;
     }
-
-
-    private int Negamax(int depth, int ply, int alpha, int beta)
+    
+    private int Search(int depth, int ply, int alpha, int beta)
     {
         _principleLines[ply].Length = 0; // To prevent q search adding more depth
         
@@ -58,20 +63,24 @@ public class MyBot : IChessBot
         if (_board.IsInCheckmate()) return -Checkmate + ply;
         if (_board.IsDraw()) return 0;
         if (depth <= 0) return Eval();
-
-        Span<Move> moves = stackalloc Move[256];
-        _board.GetLegalMovesNonAlloc(ref moves);
         
-        foreach (Move move in moves)
+        Move[] moves = _board.GetLegalMoves();
+        
+        // Sorting moves will help making alpha beta pruning more effective since good/best moves are calculated first
+        List<Tuple<Move, int>> scoredMoves = new();
+        foreach (Move move in moves) scoredMoves.Add(new Tuple<Move, int>(move, MoveScore(move)));
+        scoredMoves.Sort((a, b) => b.Item2.CompareTo(a.Item2));
+        
+        foreach (var (move, _) in scoredMoves)
         {
             _nodes++;
             
             _board.MakeMove(move);
-            int evaluation = -Negamax(depth - 1, ply + 1, -beta, -alpha);
+            int evaluation = -Search(depth - 1, ply + 1, -beta, -alpha);
             _board.UndoMove(move);
-
+            
             if (evaluation >= beta) return beta;
-
+            
             if (evaluation > alpha)
             {
                 if (ply == 0) _depthMove = move;
@@ -82,32 +91,41 @@ public class MyBot : IChessBot
         
         return alpha;
     }
-
+    
+    // Score moves using TT and MVV-LVA
+    private int MoveScore(Move move)
+    {
+        // TT-Move TODO: implement TT
+        
+        // MVV-LVA
+        if (move.IsCapture)
+            return 10 * ((int)move.CapturePieceType) - (int)move.MovePieceType;
+        return 0;
+    }
+    
     private int Eval()
     {
-        int color = Convert.ToInt32(_board.IsWhiteToMove);
+        // First score is for black, second for white
         int[] score = { 0, 0 };
-
-        for (int pieceType = 1; pieceType <= 6; pieceType++)
+        
+        // Loop both colors of the game to calculate their score
+        for (int colorIndex = 0; colorIndex < 2; colorIndex++)
         {
-            ulong whiteBb = _board.GetPieceBitboard((PieceType)pieceType, true);
-            ulong blackBb = _board.GetPieceBitboard((PieceType)pieceType, false);
-
-            while (whiteBb > 0)
+            // Loop and calculate pieces position and value of the current color
+            for (int pieceType = 1; pieceType <= 6; pieceType++)
             {
-                Square square = new Square(BitboardHelper.ClearAndGetIndexOfLSB(ref whiteBb));
-                score[1] += _pieceValue[pieceType];
-            }
-
-            while (blackBb > 0)
-            {
-                Square square = new Square(BitboardHelper.ClearAndGetIndexOfLSB(ref blackBb) ^ 56);
-                score[0] += _pieceValue[pieceType];
+                ulong bb =_board.GetPieceBitboard((PieceType)pieceType, colorIndex != 0);
+                while (bb > 0)
+                {
+                    Square square = new Square(BitboardHelper.ClearAndGetIndexOfLSB(ref bb) ^ (colorIndex != 0 ? 56 : 0));
+                    score[colorIndex] += _pieceValue[pieceType];
+                }
             }
         }
-
-        // Calculate the current player score  comparing it to the opponent color ^ 1 (XOR)
-        return score[color] - score[color ^ 1];
+        
+        // Calculate the score for the "maximising" player and comparing it to the opponent perspective ^ 1 (XOR)
+        int perspective = Convert.ToInt32(_board.IsWhiteToMove);
+        return score[perspective] - score[perspective ^ 1];
     }
     
 }

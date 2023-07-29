@@ -67,8 +67,7 @@ public class LiteBlueBot : IChessBot
         if (board.IsDraw()) return 0;
         if (depth <= 0) return Q_Search(ply, 0, alpha, beta);
 
-        System.Span<Move> moves = stackalloc Move[256];
-        board.GetLegalMovesNonAlloc(ref moves);
+        Move[] moves = board.GetLegalMoves();
         foreach (Move move in moves)
         {
             board.MakeMove(move);
