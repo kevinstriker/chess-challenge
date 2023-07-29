@@ -20,6 +20,8 @@ namespace ChessChallenge.Application
             Human,
             MyBot,
             EvilBot,
+            LiteBlueBot,
+            LiteBlueBot2,
             JacquesBot,
             StockFish0,
             StockFish1,
@@ -213,6 +215,8 @@ namespace ChessChallenge.Application
             {
                 PlayerType.MyBot => new ChessPlayer(new MyBot(), type, GameDurationMilliseconds),
                 PlayerType.EvilBot => new ChessPlayer(new EvilBot(), type, GameDurationMilliseconds),
+                PlayerType.LiteBlueBot => new ChessPlayer(new LiteBlueBot(), type, GameDurationMilliseconds),
+                PlayerType.LiteBlueBot2 => new ChessPlayer(new LiteBlueBot2(), type, GameDurationMilliseconds),
                 PlayerType.JacquesBot => new ChessPlayer(new JacquesBot(), type, GameDurationMilliseconds),
                 PlayerType.StockFish0 => new ChessPlayer(new StockFishBot(0), type, GameDurationMilliseconds),
                 PlayerType.StockFish1 => new ChessPlayer(new StockFishBot(1), type, GameDurationMilliseconds),

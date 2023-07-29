@@ -20,15 +20,10 @@ namespace ChessChallenge.Example
             string fen = board.GetFenString();
             mStockFish.SetFenPosition(fen);
 
-            string bestMove = mStockFish.GetBestMoveTime(GetTime(board,timer));
+            string bestMove = mStockFish.GetBestMoveTime(timer.MillisecondsRemaining / 40);
 
             return new Move(bestMove, board);
         }
-
-        // Basic time management
-        public int GetTime(Board board, Timer timer)
-        {
-            return Math.Min(board.PlyCount * 150 + 100, timer.MillisecondsRemaining / 20);
-        }
+        
     }
 }

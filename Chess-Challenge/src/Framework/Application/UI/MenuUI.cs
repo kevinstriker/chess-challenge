@@ -27,18 +27,12 @@ namespace ChessChallenge.Application
                 controller.StartNewGame(whiteType, blackType);
             }
 
-            if (NextButtonInRow("MyBot vs MyBot", ref buttonPos, spacing, buttonSize))
+            if (NextButtonInRow("MyBot vs LBB", ref buttonPos, spacing, buttonSize))
             {
                 controller.StartNewBotMatch(ChallengeController.PlayerType.MyBot,
-                    ChallengeController.PlayerType.MyBot);
+                    ChallengeController.PlayerType.LiteBlueBot);
             }
-
-            if (NextButtonInRow("MyBot vs EvilBot", ref buttonPos, spacing, buttonSize))
-            {
-                controller.StartNewBotMatch(ChallengeController.PlayerType.MyBot,
-                    ChallengeController.PlayerType.EvilBot);
-            }
-
+            
             if (NextButtonInRow("MyBot vs Jacques", ref buttonPos, spacing, buttonSize))
             {
                 controller.StartNewBotMatch(ChallengeController.PlayerType.MyBot,
@@ -63,6 +57,12 @@ namespace ChessChallenge.Application
                     ChallengeController.PlayerType.StockFish2);
             }
 
+            if (NextButtonInRow("Jacques vs LBB2", ref buttonPos, spacing, buttonSize))
+            {
+                controller.StartNewBotMatch(ChallengeController.PlayerType.JacquesBot,
+                    ChallengeController.PlayerType.LiteBlueBot2);
+            }
+            
             // Page buttons
             buttonPos.Y += breakSpacing;
 
