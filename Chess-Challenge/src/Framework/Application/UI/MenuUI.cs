@@ -26,43 +26,24 @@ namespace ChessChallenge.Application
                     : ChallengeController.PlayerType.Human;
                 controller.StartNewGame(whiteType, blackType);
             }
-
-            if (NextButtonInRow("MyBot vs LBB", ref buttonPos, spacing, buttonSize))
+            
+            if (NextButtonInRow("MyBot vs SF", ref buttonPos, spacing, buttonSize))
             {
                 controller.StartNewBotMatch(ChallengeController.PlayerType.MyBot,
-                    ChallengeController.PlayerType.LiteBlueBot);
+                    ChallengeController.PlayerType.StockFish);
             }
             
-            if (NextButtonInRow("MyBot vs Jacques", ref buttonPos, spacing, buttonSize))
-            {
-                controller.StartNewBotMatch(ChallengeController.PlayerType.MyBot,
-                    ChallengeController.PlayerType.JacquesBot);
-            }
-
-            if (NextButtonInRow("MyBot vs SF 0", ref buttonPos, spacing, buttonSize))
-            {
-                controller.StartNewBotMatch(ChallengeController.PlayerType.MyBot,
-                    ChallengeController.PlayerType.StockFish0);
-            }
-
-            if (NextButtonInRow("MyBot vs SF 1", ref buttonPos, spacing, buttonSize))
-            {
-                controller.StartNewBotMatch(ChallengeController.PlayerType.MyBot,
-                    ChallengeController.PlayerType.StockFish1);
-            }
-
-            if (NextButtonInRow("MyBot vs SF 2", ref buttonPos, spacing, buttonSize))
-            {
-                controller.StartNewBotMatch(ChallengeController.PlayerType.MyBot,
-                    ChallengeController.PlayerType.StockFish2);
-            }
-
-            if (NextButtonInRow("Jacques vs LBB2", ref buttonPos, spacing, buttonSize))
+            if (NextButtonInRow("Jacques vs Augs", ref buttonPos, spacing, buttonSize))
             {
                 controller.StartNewBotMatch(ChallengeController.PlayerType.JacquesBot,
-                    ChallengeController.PlayerType.LiteBlueBot2);
+                    ChallengeController.PlayerType.AugsBot);
             }
             
+            if (NextButtonInRow("Selenaut vs LBB", ref buttonPos, spacing, buttonSize))
+            {
+                controller.StartNewBotMatch(ChallengeController.PlayerType.SelenautBot,
+                    ChallengeController.PlayerType.LiteBlueBot);
+            }
             // Page buttons
             buttonPos.Y += breakSpacing;
 

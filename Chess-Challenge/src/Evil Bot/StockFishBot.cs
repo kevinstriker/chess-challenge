@@ -8,7 +8,7 @@ namespace ChessChallenge.Example
     {
         IStockfish mStockFish;
 
-        public StockFishBot(int level)
+        public StockFishBot(int level = 0)
         {
             Stockfish.NET.Models.Settings stockfishSettings = new Stockfish.NET.Models.Settings();
             stockfishSettings.SkillLevel = level;
@@ -19,9 +19,9 @@ namespace ChessChallenge.Example
         {
             string fen = board.GetFenString();
             mStockFish.SetFenPosition(fen);
-
-            string bestMove = mStockFish.GetBestMoveTime(timer.MillisecondsRemaining / 40);
-
+            
+            string bestMove = mStockFish.GetBestMoveTime(Math.Min(1000, timer.MillisecondsRemaining/30));
+            
             return new Move(bestMove, board);
         }
         

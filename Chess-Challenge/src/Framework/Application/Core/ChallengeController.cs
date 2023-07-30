@@ -17,15 +17,18 @@ namespace ChessChallenge.Application
     {
         public enum PlayerType
         {
+            // Default: bots already defined in project
             Human,
             MyBot,
             EvilBot,
+            // Custom: other bots
             LiteBlueBot,
             LiteBlueBot2,
             JacquesBot,
-            StockFish0,
-            StockFish1,
-            StockFish2,
+            MonteCarlo,
+            AugsBot,
+            SelenautBot,
+            StockFish
         }
 
         // Game state
@@ -218,9 +221,10 @@ namespace ChessChallenge.Application
                 PlayerType.LiteBlueBot => new ChessPlayer(new LiteBlueBot(), type, GameDurationMilliseconds),
                 PlayerType.LiteBlueBot2 => new ChessPlayer(new LiteBlueBot2(), type, GameDurationMilliseconds),
                 PlayerType.JacquesBot => new ChessPlayer(new JacquesBot(), type, GameDurationMilliseconds),
-                PlayerType.StockFish0 => new ChessPlayer(new StockFishBot(0), type, GameDurationMilliseconds),
-                PlayerType.StockFish1 => new ChessPlayer(new StockFishBot(1), type, GameDurationMilliseconds),
-                PlayerType.StockFish2 => new ChessPlayer(new StockFishBot(2), type, GameDurationMilliseconds),
+                PlayerType.MonteCarlo => new ChessPlayer(new MonteCarlo(), type, GameDurationMilliseconds),
+                PlayerType.AugsBot => new ChessPlayer(new AugsBot(), type, GameDurationMilliseconds),
+                PlayerType.SelenautBot => new ChessPlayer(new SelenautBot(), type, GameDurationMilliseconds),
+                PlayerType.StockFish => new ChessPlayer(new StockFishBot(0), type, GameDurationMilliseconds),
                 _ => new ChessPlayer(new HumanPlayer(boardUI), type)
             };
         }

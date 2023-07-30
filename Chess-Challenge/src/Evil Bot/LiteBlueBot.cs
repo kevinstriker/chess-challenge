@@ -4,7 +4,6 @@ using System.Linq;
 using System.Numerics;
 using System.Collections.Generic;
 
-
 public class LiteBlueBot : IChessBot
 {
     int CHECKMATE = 100000;
