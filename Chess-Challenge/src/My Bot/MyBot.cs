@@ -55,6 +55,8 @@ public class MyBot : IChessBot
         _board = boardInput;
         _timer = timerInput;
         
+        _timeLimit = 1000;
+        
         IterativeDeepening();
         
         return _bestMove.IsNull ? _board.GetLegalMoves()[0] : _bestMove;
@@ -69,8 +71,6 @@ public class MyBot : IChessBot
             _nodes = 0;
             _qnodes = 0;
 
-            _timeLimit = 5000;
-            
             // Search "best line of play" with Negamax alpha beta algorithm
             int score = Search(depth, 0, -Checkmate, Checkmate);
 
