@@ -1,5 +1,6 @@
 using ChessChallenge.API;
 using System;
+
 public class LiteBlueBot2 : IChessBot
 {
     // Define globals to save tokens

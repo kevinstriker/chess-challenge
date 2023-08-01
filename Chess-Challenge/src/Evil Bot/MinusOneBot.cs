@@ -53,7 +53,6 @@ public class MinusOneBot : IChessBot
     
     private int Search(int depth, int ply, int alpha, int beta)
     { 
-        if (_timer.MillisecondsElapsedThisTurn > TimeLimit) return 0; // We can return any number since this depth will break anyways
         if (_board.IsDraw()) return 0;                                  
         if (_board.IsInCheckmate()) return -Checkmate + ply;
         

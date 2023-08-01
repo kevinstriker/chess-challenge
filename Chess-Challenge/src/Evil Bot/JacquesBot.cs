@@ -1,7 +1,6 @@
 using ChessChallenge.API;
 using System;
 
-
 // https://raw.githubusercontent.com/JacquesRW/Chess-Challenge/main/Chess-Challenge/src/My%20Bot/MyBot.cs
 public class JacquesBot : IChessBot
 {

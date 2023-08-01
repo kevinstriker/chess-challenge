@@ -24,8 +24,11 @@ namespace ChessChallenge.Application
             // Custom: my previous version of the bot
             MinusOneBot, 
             // Custom: other bots
+            NegaMaxBot,
             LiteBlueBot,
             LiteBlueBot2,
+            LiteBlueBot3,
+            LiteBlueBot4,
             JacquesBot,
             MonteCarlo,
             AugsBot,
@@ -222,8 +225,11 @@ namespace ChessChallenge.Application
                 PlayerType.MyBot => new ChessPlayer(new MyBot(), type, GameDurationMilliseconds),
                 PlayerType.EvilBot => new ChessPlayer(new EvilBot(), type, GameDurationMilliseconds),
                 PlayerType.MinusOneBot => new ChessPlayer(new MinusOneBot(), type, GameDurationMilliseconds),
+                PlayerType.NegaMaxBot => new ChessPlayer(new NegaMaxBot(), type, GameDurationMilliseconds),
                 PlayerType.LiteBlueBot => new ChessPlayer(new LiteBlueBot(), type, GameDurationMilliseconds),
                 PlayerType.LiteBlueBot2 => new ChessPlayer(new LiteBlueBot2(), type, GameDurationMilliseconds),
+                PlayerType.LiteBlueBot3 => new ChessPlayer(new LiteBlueBot3(), type, GameDurationMilliseconds),
+                PlayerType.LiteBlueBot4 => new ChessPlayer(new LiteBlueBot4(), type, GameDurationMilliseconds),
                 PlayerType.JacquesBot => new ChessPlayer(new JacquesBot(), type, GameDurationMilliseconds),
                 PlayerType.MonteCarlo => new ChessPlayer(new MonteCarlo(), type, GameDurationMilliseconds),
                 PlayerType.AugsBot => new ChessPlayer(new AugsBot(), type, GameDurationMilliseconds),
