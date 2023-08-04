@@ -24,18 +24,44 @@ namespace ChessChallenge.Application
             // Custom: my previous version of the bot
             MinusOneBot, 
             // Custom: other bots
-            NegaMaxBot,
+            NegaMaxBot, // Tier 1 bot
+            JacquesBot, // Tier 2 bot
             LiteBlueBot,
             LiteBlueBot2,
             LiteBlueBot3,
             LiteBlueBot4,
-            JacquesBot,
+            LiteBlueBot5,
             MonteCarlo,
             AugsBot,
             SelenautBot,
-            StockFish
+            StockFishBot
         }
 
+        public static ChessChallenge.API.IChessBot? CreateBot(PlayerType type)
+        {
+            return type switch
+            {
+                // Default bots
+                PlayerType.MyBot => new MyBot(),
+                PlayerType.EvilBot => new EvilBot(),
+                // Custom: my previous version
+                PlayerType.MinusOneBot => new MinusOneBot(),
+                // Custom: other bots
+                PlayerType.NegaMaxBot => new NegaMaxBot(),
+                PlayerType.JacquesBot => new JacquesBot(),
+                PlayerType.LiteBlueBot => new LiteBlueBot(),
+                PlayerType.LiteBlueBot2 => new LiteBlueBot2(),
+                PlayerType.LiteBlueBot3 => new LiteBlueBot3(),
+                PlayerType.LiteBlueBot4 => new LiteBlueBot4(),
+                PlayerType.LiteBlueBot5 => new LiteBlueBot5(),
+                PlayerType.MonteCarlo => new MonteCarlo(),
+                PlayerType.AugsBot => new AugsBot(),
+                PlayerType.SelenautBot => new SelenautBot(),
+                PlayerType.StockFishBot => new StockFishBot(),
+                _ => null
+            };
+        }
+        
         // Game state
         readonly Random rng;
         int gameID;
@@ -173,8 +199,6 @@ namespace ChessChallenge.Application
             return Move.NullMove;
         }
 
-
-
         void NotifyTurnToMove()
         {
             //playerToMove.NotifyTurnToMove(board);
@@ -230,11 +254,12 @@ namespace ChessChallenge.Application
                 PlayerType.LiteBlueBot2 => new ChessPlayer(new LiteBlueBot2(), type, GameDurationMilliseconds),
                 PlayerType.LiteBlueBot3 => new ChessPlayer(new LiteBlueBot3(), type, GameDurationMilliseconds),
                 PlayerType.LiteBlueBot4 => new ChessPlayer(new LiteBlueBot4(), type, GameDurationMilliseconds),
+                PlayerType.LiteBlueBot5 => new ChessPlayer(new LiteBlueBot5(), type, GameDurationMilliseconds),
                 PlayerType.JacquesBot => new ChessPlayer(new JacquesBot(), type, GameDurationMilliseconds),
                 PlayerType.MonteCarlo => new ChessPlayer(new MonteCarlo(), type, GameDurationMilliseconds),
                 PlayerType.AugsBot => new ChessPlayer(new AugsBot(), type, GameDurationMilliseconds),
                 PlayerType.SelenautBot => new ChessPlayer(new SelenautBot(), type, GameDurationMilliseconds),
-                PlayerType.StockFish => new ChessPlayer(new StockFishBot(0), type, GameDurationMilliseconds),
+                PlayerType.StockFishBot => new ChessPlayer(new StockFishBot(0), type, GameDurationMilliseconds),
                 _ => new ChessPlayer(new HumanPlayer(boardUI), type)
             };
         }

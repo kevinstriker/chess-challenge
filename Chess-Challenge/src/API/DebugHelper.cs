@@ -20,7 +20,7 @@ public static class DebugHelper
         return "";
     }
 
-    public static void LogDepth(Board board, Timer timer, MyBot.TtEntry[] tt, int depth, int score, long nodes, long qNodes)
+    public static void LogDepth(Board board, Timer timer, MyBot.TtEntry[] tt, int depth, int score, long nodes, long qNodes, long nps)
     {
         string timeString = "\x1b[37mtime\u001b[38;5;214m " + timer.MillisecondsElapsedThisTurn + "ms\x1b[37m\x1b[0m";
         timeString += string.Concat(Enumerable.Repeat(" ", 38 - timeString.Length));
@@ -36,13 +36,16 @@ public static class DebugHelper
 
         string qnodesString = "\x1b[37mqnodes\x1b[34m " + qNodes + "\x1b[37m";
         qnodesString += string.Concat(Enumerable.Repeat(" ", 32 - qnodesString.Length));
+        
+        string npsString = "\x1b[37mnps\x1b[34m " + nps + "\x1b[37m";
+        npsString += string.Concat(Enumerable.Repeat(" ", 32 - qnodesString.Length));
 
         string pvString = "\x1b[37mpv\x1b[33m " + GetPv(board, tt, MyBot.TtEntryCount, depth);
 
         Console.WriteLine(string.Join(" ",
             new string[]
             {
-                depthString, timeString, bestEvalString, nodesString, qnodesString, pvString
+                depthString, timeString, bestEvalString, nodesString, qnodesString, npsString, pvString
             }));
     }
 }

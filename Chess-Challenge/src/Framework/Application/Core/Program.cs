@@ -1,7 +1,10 @@
-﻿using Raylib_cs;
+﻿using System;
+using Raylib_cs;
 using System.IO;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using ChessChallenge.API;
+using ChessChallenge.UCI;
 
 namespace ChessChallenge.Application
 {
@@ -10,8 +13,15 @@ namespace ChessChallenge.Application
         const bool hideRaylibLogs = true;
         static Camera2D cam;
 
-        public static void Main()
+        public static void Main(string[] args)
         {
+            // Custom code to Start a match with a 3th party engine to simulate more quick the matches
+            if (args.Length > 1 && args[0] == "uci")
+            {
+                StartUci(args);
+                return;
+            }
+            
             Vector2 loadedWindowSize = GetSavedWindowSize();
             int screenWidth = (int)loadedWindowSize.X;
             int screenHeight = (int)loadedWindowSize.Y;
@@ -51,6 +61,27 @@ namespace ChessChallenge.Application
 
             controller.Release();
             UIHelper.Release();
+        }
+        
+        private static void StartUci(string[] args)
+        {
+            bool success = Enum.TryParse(args[1], out ChallengeController.PlayerType player);
+
+            if (!success)
+            {
+                Console.Error.WriteLine($"Failed to start bot with player type {args[1]}");
+                return;
+            }
+
+            IChessBot? bot = ChallengeController.CreateBot(player);
+            if (bot == null)
+            {
+                Console.Error.WriteLine($"Cannot create bot of type {player.ToString()}");
+                return;
+            }
+
+            UCIBot uci = new UCIBot(bot, player);
+            uci.Run();
         }
 
         public static void SetWindowSize(Vector2 size)
@@ -102,10 +133,7 @@ namespace ChessChallenge.Application
             bool isBigWindow = Raylib.GetScreenWidth() > Settings.ScreenSizeSmall.X;
             File.WriteAllText(FileHelper.PrefsFilePath, isBigWindow ? "1" : "0");
         }
-
-      
-
+        
     }
-
-
+    
 }

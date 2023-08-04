@@ -1,29 +1,27 @@
 #define UCI
-
-// #define TESTING
 // #define SLOW
 
 using ChessChallenge.API;
 using System;
 using System.Linq;
 
-public class LiteBlueBot4 : IChessBot
+public class LiteBlueBot5 : IChessBot
 {
     // Define globals to save tokens
-    readonly int CHECKMATE = 100000;
     Board board;
     Timer timer;
     int time_limit;
-    Move depth_move;
+    Move best_move_root;
+    int[,,] history_table;
 
 #if UCI
     long nodes;
 #endif
 
     // TT Entry Definition
-    record struct Entry(ulong Key, int Score, sbyte Depth, byte Flag, Move Move);
+    record struct Entry(ulong Key, int Score, Move Move, int Depth, int Flag);
     // TT Definition
-    const ulong TT_ENTRIES = 0x7FFFFF;
+    const ulong TT_ENTRIES = 0x3FFFFF;
     Entry[] tt = new Entry[TT_ENTRIES];
 
     // Required Think Method
@@ -32,64 +30,60 @@ public class LiteBlueBot4 : IChessBot
         board = _board;
         timer = _timer;
         time_limit = timer.MillisecondsRemaining / 40;
+        history_table = new int[2, 7, 64];
 #if SLOW
-        time_limit = timer.MillisecondsRemaining / 2;
-#endif
-#if TESTING
-        time_limit = timer.MillisecondsRemaining / 2000;
+        time_limit = timer.MillisecondsRemaining / 1;
 #endif
 #if UCI
         nodes = 0;
 #endif
-        Move best_move = Move.NullMove;
         // Iterative Deepening Loop
-        for (int depth = 1; depth < 100; depth++)
+        for (int depth = 1; ;)
         {
-            int score = Negamax(depth, 0, -CHECKMATE, CHECKMATE);
+            int score = Negamax(++depth, 0, -100000, 100000, true);
 
             // Check if time is expired
             if (timer.MillisecondsElapsedThisTurn > time_limit)
                 break;
-
-            best_move = depth_move;
 #if UCI
             // UCI Debug Logging
-            Console.WriteLine("depth {0,2} score {1,6} nodes {2,9} nps {3,8} time {4,5} pv {5}{6}",
+            Console.WriteLine("info depth {0,2} score {1,6} nodes {2,9} nps {3,8} time {4,5} pv {5}{6}",
                 depth,
                 score,
                 nodes,
                 1000 * nodes / (timer.MillisecondsElapsedThisTurn + 1),
                 timer.MillisecondsElapsedThisTurn,
-                best_move.StartSquare.Name,
-                best_move.TargetSquare.Name
+                best_move_root.StartSquare.Name,
+                best_move_root.TargetSquare.Name
             );
 #endif
 
             // If a checkmate is found, exit search early to save time
-            if (score > CHECKMATE / 2)
+            if (score > 100000 / 2)
                 break;
         }
 #if UCI
         Console.WriteLine();
 #endif
 
-        return best_move;
+        return best_move_root;
     }
 
-    private int Negamax(int depth, int ply, int alpha, int beta)
+    private int Negamax(int depth, int ply, int alpha, int beta, bool do_null)
     {
         // Increment node counter
 #if UCI
         nodes++;
 #endif
         // Define search variables
-        bool root = ply == 0;
-        bool q_search = depth <= 0;
-        int best_score = -CHECKMATE;
+        bool root = ply == 0, q_search = depth <= 0, in_check = board.IsInCheck();
+        int best_score = -100000 * 2, turn = board.IsWhiteToMove ? 1 : 0;
         ulong key = board.ZobristKey;
 
         // Check for draw by repetition
-        if (!root && board.IsRepeatedPosition()) return -20;
+        if (!root && board.IsRepeatedPosition()) return 0;
+
+        if (in_check) depth++;
 
         // TT Pruning
         Entry tt_entry = tt[key % TT_ENTRIES];
@@ -106,23 +100,33 @@ public class LiteBlueBot4 : IChessBot
             if (best_score >= beta) return beta;
             alpha = Math.Max(alpha, best_score);
         }
-        else if (beta - alpha == 1 && !board.IsInCheck())
+        else if (beta - alpha == 1 && !in_check)
         {
-            // Static Eval Calculation for Pruning
+            // Static eval calculation for pruning
             int static_eval = Eval();
             // Static Move Pruning
             if (static_eval - 85 * depth >= beta) return static_eval - 85 * depth;
+
+            // Null Move Pruning
+            if (do_null && depth >= 2)
+            {
+                board.TrySkipTurn();
+                int score = -Negamax(depth - 3 - depth / 6, ply + 1, -beta, 1 - beta, false);
+                board.UndoSkipTurn();
+                if (score >= beta) return score;
+            }
         }
 
-        Move[] moves = board.GetLegalMoves(q_search && !board.IsInCheck());
+        Move[] moves = board.GetLegalMoves(q_search && !in_check);
         // Move Ordering
         int[] move_scores = new int[moves.Length];
         for (int i = 0; i < moves.Length; i++)
         {
+            Move move = moves[i];
             // TT-Move + MVV-LVA
-            move_scores[i] = moves[i] == tt_entry.Move ? 100000 :
-            moves[i].IsCapture ? 100 * (int)moves[i].CapturePieceType - (int)moves[i].MovePieceType :
-            moves[i].IsPromotion ? (int)moves[i].PromotionPieceType : 0;
+            move_scores[i] = move == tt_entry.Move ? 1000000 :
+            move.IsCapture ? 1000 * (int)move.CapturePieceType - (int)move.MovePieceType :
+            history_table[turn, (int)move.MovePieceType, move.TargetSquare.Index];
         }
 
         Move best_move = Move.NullMove;
@@ -130,10 +134,10 @@ public class LiteBlueBot4 : IChessBot
         for (int i = 0; i < moves.Length; i++)
         {
             // Check if time is expired
-            if (timer.MillisecondsElapsedThisTurn > time_limit) return 0;
+            if (timer.MillisecondsElapsedThisTurn > time_limit) return 100000;
 
             // Sort moves in one-iteration bubble sort
-            for (int j = i + 1; j < moves.Length; j++)
+            for (int j = i; ++j < moves.Length;)
                 if (move_scores[i] < move_scores[j])
                     (moves[i], moves[j], move_scores[i], move_scores[j]) =
                     (moves[j], moves[i], move_scores[j], move_scores[i]);
@@ -141,9 +145,22 @@ public class LiteBlueBot4 : IChessBot
             Move move = moves[i];
             board.MakeMove(move);
             // Principal variation search with null-window search
-            int new_score = -Negamax(depth - 1, ply + 1, (q_search || i == 0) ? -beta : -alpha - 1, -alpha);
-            if (!q_search && i != 0 && new_score > alpha)
-                new_score = -Negamax(depth - 1, ply + 1, -beta, -new_score);
+            bool use_full_search = q_search || i == 0;
+            int new_score = -Negamax(
+                depth - 1,
+                ply + 1,
+                use_full_search ? -beta : -alpha - 1,
+                -alpha,
+                !use_full_search || do_null
+                );
+            if (!use_full_search && new_score > alpha)
+                new_score = -Negamax(
+                    depth - 1,
+                    ply + 1,
+                    -beta,
+                    -new_score,
+                    do_null
+                    );
             board.UndoMove(move);
 
             if (new_score > best_score)
@@ -152,24 +169,28 @@ public class LiteBlueBot4 : IChessBot
                 best_move = move;
 
                 // Update bestmove
-                if (root) depth_move = move;
+                if (root) best_move_root = move;
                 // Improve alpha
                 alpha = Math.Max(alpha, best_score);
                 // Beta Cutoff
-                if (alpha >= beta) break;
+                if (alpha >= beta)
+                {
+                    if (!q_search && !move.IsCapture) history_table[turn, (int)move.MovePieceType, move.TargetSquare.Index] += depth * depth;
+                    break;
+                }
             }
         }
 
         // If there are no moves return either checkmate or draw
-        if (!q_search && moves.Length == 0) return board.IsInCheck() ? -CHECKMATE + ply : 0;
+        if (!q_search && moves.Length == 0) return in_check ? -100000 + ply : 0;
 
         // Save position to transposition table
         tt[key % TT_ENTRIES] = new Entry(
             key,
             best_score,
-            (sbyte)depth,
-            (byte)(best_score >= beta ? 2 : best_score > start_alpha ? 1 : 0),
-            best_move
+            best_move,
+            depth,
+            best_score >= beta ? 2 : best_score > start_alpha ? 1 : 0
         );
 
         return best_score;
@@ -181,8 +202,8 @@ public class LiteBlueBot4 : IChessBot
     // None, Pawn, Knight, Bishop, Rook, Queen, King 
     private readonly short[] pvm = { 82, 337, 365, 477, 1025, 20000, // Middlegame
                                      94, 281, 297, 512, 936, 20000}; // Endgame
-    // Big table packed with data from premade piece square tables
-    // Unpack using PackedEvaluationTables[set, rank] = file
+                                                                     // Big table packed with data from premade piece square tables
+                                                                     // Unpack using PackedEvaluationTables[set, rank] = file
     private readonly decimal[] PackedPestoTables = {
         63746705523041458768562654720m, 71818693703096985528394040064m, 75532537544690978830456252672m, 75536154932036771593352371712m, 76774085526445040292133284352m, 3110608541636285947269332480m, 936945638387574698250991104m, 75531285965747665584902616832m,
         77047302762000299964198997571m, 3730792265775293618620982364m, 3121489077029470166123295018m, 3747712412930601838683035969m, 3763381335243474116535455791m, 8067176012614548496052660822m, 4977175895537975520060507415m, 2475894077091727551177487608m,
@@ -207,11 +228,10 @@ public class LiteBlueBot4 : IChessBot
         foreach (bool stm in new[] { true, false })
         {
             // Iterate through all piece types
-            for (int piece = 0; piece < 6; piece++)
+            for (int piece = -1; ++piece < 6;)
             {
                 // Get piece bitboard
-                ulong bb = board.GetPieceBitboard((PieceType)(piece + 1), stm);
-
+                ulong bb = board.GetPieceBitboard((PieceType)piece + 1, stm);
                 // Iterate through each individual piece
                 while (bb != 0)
                 {
@@ -224,26 +244,24 @@ public class LiteBlueBot4 : IChessBot
                     phase += phase_weight[piece];
                 }
             }
+            // Flip sign of eval before switching sides
             mg = -mg;
             eg = -eg;
         }
-
-        // In case of premature promotion
-        phase = Math.Min(phase, 24);
         // Tapered evaluation
         return (mg * phase + eg * (24 - phase)) / 24 * (board.IsWhiteToMove ? 1 : -1);
     }
 
-    public LiteBlueBot4()
+    public LiteBlueBot5()
     {
         UnpackedPestoTables = new int[64][];
-        for (int i = 0; i < 64; i++)
+        UnpackedPestoTables = PackedPestoTables.Select(packedTable =>
         {
             int pieceType = 0;
-            UnpackedPestoTables[i] = decimal.GetBits(PackedPestoTables[i]).Take(3)
+            return decimal.GetBits(packedTable).Take(3)
                 .SelectMany(c => BitConverter.GetBytes(c)
                     .Select((byte square) => (int)((sbyte)square * 1.461) + pvm[pieceType++]))
                 .ToArray();
-        }
+        }).ToArray();
     }
 }
