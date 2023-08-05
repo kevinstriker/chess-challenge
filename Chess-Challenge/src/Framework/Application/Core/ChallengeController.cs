@@ -8,8 +8,11 @@ using System.Runtime.ExceptionServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using ChessChallenge.API;
 using static ChessChallenge.Application.Settings;
 using static ChessChallenge.Application.ConsoleHelper;
+using Board = ChessChallenge.Chess.Board;
+using Move = ChessChallenge.Chess.Move;
 
 namespace ChessChallenge.Application
 {
@@ -37,7 +40,7 @@ namespace ChessChallenge.Application
             StockFishBot
         }
 
-        public static ChessChallenge.API.IChessBot? CreateBot(PlayerType type)
+        public static IChessBot? CreateBot(PlayerType type)
         {
             return type switch
             {

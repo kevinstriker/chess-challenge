@@ -48,4 +48,5 @@ public static class DebugHelper
                 depthString, timeString, bestEvalString, nodesString, qnodesString, npsString, pvString
             }));
     }
+    
 }

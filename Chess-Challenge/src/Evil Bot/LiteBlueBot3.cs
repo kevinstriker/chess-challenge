@@ -33,7 +33,7 @@ public class LiteBlueBot3 : IChessBot
     }
 
     // TT Definition
-    const int TT_ENTRIES = 1 << 20;
+    const int TT_ENTRIES = 0x3FFFFF;
     Entry[] tt = new Entry[TT_ENTRIES];
 
     // Required Think Method

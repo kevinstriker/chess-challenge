@@ -1,173 +1,200 @@
-﻿using System;
-using System.Collections.Generic;
+﻿#define LOG
+
 using ChessChallenge.API;
+using System;
 
 public class MyBot : IChessBot
 {
-    // Global variables: To save tokens
-    private Board _board;
-    private Timer _timer;
+#if LOG
     private Int64 _nodes;
     private Int64 _qnodes;
-    private int _timeLimit;
+#endif
 
     // Evaluate variables: Useful when determining which move to play
-    private const int Checkmate = 100000;
     private Move _bestMove;
-    private Move _depthMove;
-    private int[] _pieceValue = { 0, 100, 310, 330, 500, 1000, 10000 };
+
+    // PeSTO evaluation thanks to JW
+    private int[] _pieceVal = { 0, 100, 310, 330, 500, 1000, 10000 };
+    private int[] _piecePhase = { 0, 0, 1, 1, 2, 4, 0 };
+    
+    private ulong[] _psts =
+    {
+        657614902731556116, 420894446315227099, 384592972471695068, 312245244820264086, 364876803783607569,
+        366006824779723922, 366006826859316500, 786039115310605588, 421220596516513823, 366011295806342421,
+        366006826859316436, 366006896669578452, 162218943720801556, 440575073001255824, 657087419459913430,
+        402634039558223453, 347425219986941203, 365698755348489557, 311382605788951956, 147850316371514514,
+        329107007234708689, 402598430990222677, 402611905376114006, 329415149680141460, 257053881053295759,
+        291134268204721362, 492947507967247313, 367159395376767958, 384021229732455700, 384307098409076181,
+        402035762391246293, 328847661003244824, 365712019230110867, 366002427738801364, 384307168185238804,
+        347996828560606484, 329692156834174227, 365439338182165780, 386018218798040211, 456959123538409047,
+        347157285952386452, 365711880701965780, 365997890021704981, 221896035722130452, 384289231362147538,
+        384307167128540502, 366006826859320596, 366006826876093716, 366002360093332756, 366006824694793492,
+        347992428333053139, 457508666683233428, 329723156783776785, 329401687190893908, 366002356855326100,
+        366288301819245844, 329978030930875600, 420621693221156179, 422042614449657239, 384602117564867863,
+        419505151144195476, 366274972473194070, 329406075454444949, 275354286769374224, 366855645423297932,
+        329991151972070674, 311105941360174354, 256772197720318995, 365993560693875923, 258219435335676691,
+        383730812414424149, 384601907111998612, 401758895947998613, 420612834953622999, 402607438610388375,
+        329978099633296596, 67159620133902
+    };
 
     // Transposition Table; A lookup table of previous calculated positions and it's "best move"
-    public record struct TtEntry(ulong Key, sbyte Depth, byte Flag, int Score, Move Move);
-    public const ulong TtEntryCount = 0x8FFFFF;
+    public record struct TtEntry(ulong Key, int Depth, int Flag, int Score, Move Move);
+
+    public const ulong TtEntryCount = 0x3FFFFF;
     private TtEntry[] _tt = new TtEntry[TtEntryCount];
-    
-    private int Evaluate()
+
+    private int GetPstVal(int psq)
     {
-        // First score is for black, second for white
-        int[] score = { 0, 0 };
-        
-        // Loop both colors of the game to calculate their score
-        for (int colorIndex = 0; colorIndex < 2; colorIndex++)
+        return (int)(((_psts[psq / 10] >> (6 * (psq % 10))) & 63) - 20) * 8;
+    }
+
+    private int Evaluate(Board board)
+    {
+        int mg = 0, eg = 0, phase = 0;
+
+        foreach (bool stm in new[] { true, false })
         {
-            // Loop and calculate pieces position and value of the current color
-            for (int pieceType = 1; pieceType <= 6; pieceType++)
+            for (var p = PieceType.Pawn; p <= PieceType.King; p++)
             {
-                ulong bb = _board.GetPieceBitboard((PieceType)pieceType, colorIndex != 0);
-                while (bb > 0)
+                int piece = (int)p, ind;
+                ulong mask = board.GetPieceBitboard(p, stm);
+                while (mask != 0)
                 {
-                    Square sq = new Square(BitboardHelper.ClearAndGetIndexOfLSB(ref bb) ^ (colorIndex != 0 ? 0 : 56));
-                    score[colorIndex] += _pieceValue[pieceType];
+                    phase += _piecePhase[piece];
+                    ind = 128 * (piece - 1) + BitboardHelper.ClearAndGetIndexOfLSB(ref mask) ^ (stm ? 56 : 0);
+                    mg += GetPstVal(ind) + _pieceVal[piece];
+                    eg += GetPstVal(ind + 64) + _pieceVal[piece];
                 }
             }
+
+            // Flip score; example white 2300 eval becomes -2300, after we calculate black 2000 it becomes -300 and 300 after last flip
+            mg = -mg;
+            eg = -eg;
         }
 
-        // Calculate the score for the "maximising" player and comparing it to the opponent perspective ^ 1 (XOR)
-        int perspective = Convert.ToInt32(_board.IsWhiteToMove);
-        return score[perspective] - score[perspective ^ 1];
+        return (mg * phase + eg * (24 - phase)) / 24 * (board.IsWhiteToMove ? 1 : -1);
     }
 
-    // Ordering of moves
-    private int MoveScore(Move move, Move ttMove)
+
+    // Search our best next move by NegaMax, Q Search, TT and move ordering
+    private int Search(Board board, Timer timer, int timeLimit, int alpha, int beta, int depth, int ply)
     {
-        // TT-Moves first since they were already calculated and considered "best" for that position
-        if (move == ttMove)
-            return 10000;
-
-        // MVV-LVA capturing pieces with pieces of less value is generally speaking good so consider them first
-        if (move.IsCapture)
-            return 100 * (int)move.CapturePieceType - (int)move.MovePieceType;
-
-        // Promotion moves are generally good 
-        if (move.IsPromotion)
-            return 10;
-
-        return 0;
-    }
-    
-    // Search the best move, a combination of Negamax algorithm, Q Search, TT and Move ordering
-    private int Search(int depth, int ply, int alpha, int beta)
-    {
-        ulong key = _board.ZobristKey;
-        int bestScore = -Checkmate;
-        bool root = ply == 0;
+        ulong key = board.ZobristKey;
+        bool notRoot = ply > 0;
         bool qSearch = depth <= 0;
+        int bestScore = -30000;
 
-        if (!root && _board.IsRepeatedPosition()) return 0;
-        
-        TtEntry ttEntry = _tt[key % TtEntryCount];
-        
-        if (!root && ttEntry.Key == key && ttEntry.Depth >= depth
-            && (ttEntry.Flag == 3 
-                || ttEntry.Flag == 2 && ttEntry.Score >= beta
-                || ttEntry.Flag == 1 && ttEntry.Score <= alpha
-            )) return ttEntry.Score;
+        // Try to prevent a 3 fold repetition by slightly offsetting this position score
+        if (notRoot && board.IsRepeatedPosition()) return -10;
 
-        int eval = Evaluate();
+        TtEntry entry = _tt[key % TtEntryCount];
+
+        // Try to find a board position that was already evaluated and re-use it
+        if (notRoot && entry.Key == key && entry.Depth >= depth
+            && (entry.Flag == 3
+                || entry.Flag == 2 && entry.Score >= beta
+                || entry.Flag == 1 && entry.Score <= alpha
+            )) return entry.Score;
+
+        int eval = Evaluate(board);
 
         // Quiescence search here to save tokens
         if (qSearch)
         {
             bestScore = eval;
-            if (bestScore >= beta) return beta;
+            if (bestScore >= beta) return bestScore;
             alpha = Math.Max(alpha, bestScore);
         }
-        
-        Move[] moves = _board.GetLegalMoves(qSearch);
+
+        // Generate moves, only captures when in q search
+        Move[] moves = board.GetLegalMoves(qSearch);
+        int[] scores = new int[moves.Length];
 
         // Sorting moves makes alpha beta pruning more effective, good moves are calculated first
-        List<Tuple<Move, int>> scoredMoves = new();
-        foreach (Move move in moves) scoredMoves.Add(new Tuple<Move, int>(move, MoveScore(move, ttEntry.Move)));
-        scoredMoves.Sort((a, b) => b.Item2.CompareTo(a.Item2));
+        for (int i = 0; i < moves.Length; i++)
+        {
+            Move move = moves[i];
+            // TT move
+            if (move == entry.Move) scores[i] = 1000000;
+            // https://www.chessprogramming.org/MVV-LVA
+            else if (move.IsCapture) scores[i] = 100 * (int)move.CapturePieceType - (int)move.MovePieceType;
+        }
 
         Move bestMove = Move.NullMove;
         int startAlpha = alpha;
 
-        foreach (var (move, _) in scoredMoves)
+        for (int i = 0; i < moves.Length; i++)
         {
-            if (_timer.MillisecondsElapsedThisTurn > _timeLimit) return 0;
+            if (timer.MillisecondsElapsedThisTurn >= timeLimit) return 0;
 
-            if (root || !qSearch) _nodes++;
-            else _qnodes++;
-            
-            _board.MakeMove(move);
-            int newScore = -Search(depth - 1, ply + 1, -beta, -alpha);
-            _board.UndoMove(move);
-
-            if (newScore > bestScore)
+            // Incrementally sort moves
+            for (int j = i + 1; j < moves.Length; j++)
             {
-                bestScore = newScore;
+                if (scores[j] > scores[i])
+                    (scores[i], scores[j], moves[i], moves[j]) = (scores[j], scores[i], moves[j], moves[i]);
+            }
+
+#if LOG
+            if (ply < 0) _qnodes++;
+            else _nodes++;
+#endif
+
+            Move move = moves[i];
+            board.MakeMove(move);
+            int score = -Search(board, timer, timeLimit, -beta, -alpha, depth - 1, ply + 1);
+            board.UndoMove(move);
+
+            // New best move
+            if (score > bestScore)
+            {
+                bestScore = score;
                 bestMove = move;
+
                 // When in root depth we're using this move as our next move
-                if (root) _depthMove = move;
+                if (ply == 0) _bestMove = move;
                 // Improve alpha
-                alpha = Math.Max(bestScore, alpha);
+                alpha = Math.Max(alpha, score);
                 // Beta fail soft
                 if (alpha >= beta) break;
             }
         }
 
         // (Check/Stale)mate
-        if (!qSearch && moves.Length == 0) return _board.IsInCheck() ? -Checkmate + ply : 0;
+        if (!qSearch && moves.Length == 0) return board.IsInCheck() ? -30000 + ply : 0;
 
         // Determine type of node cutoff
         int flag = bestScore >= beta ? 2 : bestScore > startAlpha ? 3 : 1;
+
         // Save position and best move to transposition table
-        _tt[key % TtEntryCount] = new TtEntry(key, (sbyte)depth, (byte)flag, bestScore, bestMove);
+        _tt[key % TtEntryCount] = new TtEntry(key, depth, flag, bestScore, bestMove);
 
         return bestScore;
     }
 
-    public Move Think(Board boardInput, Timer timerInput)
+    public Move Think(Board board, Timer timer)
     {
-        _board = boardInput;
-        _timer = timerInput;
-
         _bestMove = Move.NullMove;
 
-        _timeLimit = Math.Min(1000, _timer.MillisecondsRemaining / 20);
+        int timeLimit = timer.MillisecondsRemaining / 30;
 
         // Iterative deepening
-        for (int depth = 1; depth < 50; depth++)
+        for (int depth = 1; depth <= 50; depth++)
         {
-            _nodes = 0;
-            _qnodes = 0;
-
             // Negamax algorithm with Alpha Beta, Q Search and Transposition Tables
-            int score = Search(depth, 0, -Checkmate, Checkmate);
+            int score = Search(board, timer, timeLimit, -30000, 30000, depth, 0);
 
-            // If we're breaking out of our search do not use this depth since it was incomplete 
-            if (_timer.MillisecondsElapsedThisTurn > _timeLimit)
-                break;
+#if LOG
+            DebugHelper.LogDepth(board, timer, _tt, depth, score, _nodes, _qnodes, 1000 * _nodes / (timer.MillisecondsElapsedThisTurn + 1));
+#endif
             
-            // Reached here so depth move is our best calculated move
-            _bestMove = _depthMove;
-
-            DebugHelper.LogDepth(_board, _timer, _tt, depth, score, _nodes, _qnodes);
+            // Out of time
+            if (timer.MillisecondsElapsedThisTurn >= timeLimit) break;
         }
 
+#if LOG
         Console.WriteLine();
-
-        return _bestMove.IsNull ? _board.GetLegalMoves()[0] : _bestMove;
+#endif
+        
+        return _bestMove.IsNull ? board.GetLegalMoves()[0] : _bestMove;
     }
 }
