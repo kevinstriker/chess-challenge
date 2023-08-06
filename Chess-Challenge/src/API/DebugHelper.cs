@@ -4,6 +4,7 @@ using ChessChallenge.API;
 
 public static class DebugHelper
 {
+    /*
     private static string GetPv(Board board, MyBot.TtEntry[] tt, ulong ttEntries, int depth)
     {
         ulong key = board.ZobristKey;
@@ -48,5 +49,5 @@ public static class DebugHelper
                 depthString, timeString, bestEvalString, nodesString, qnodesString, npsString, pvString
             }));
     }
-    
+    */
 }

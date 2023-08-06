@@ -3,10 +3,9 @@ using System;
 
 public class MinusOneBot : IChessBot
 {
-    // Evaluate variables: Useful when determining which move to play
-    private Move _bestMoveRoot;
+    private Move _bestMoveRoot = Move.NullMove;
 
-    // PeSTO evaluation thanks to JW
+    // https://www.chessprogramming.org/PeSTO%27s_Evaluation_Function
     private int[] _pieceVal = { 0, 100, 310, 330, 500, 1000, 10000 };
     private int[] _piecePhase = { 0, 0, 1, 1, 2, 4, 0 };
 
@@ -30,12 +29,12 @@ public class MinusOneBot : IChessBot
         329978099633296596, 67159620133902
     };
 
-    // Transposition Table; A lookup table of previous calculated positions and it's "best move"
+    // https://www.chessprogramming.org/Transposition_Table
     private struct TtEntry
     {
-        public readonly ulong Key;
-        public readonly int Depth, Score, Bound;
+        public ulong Key;
         public Move Move;
+        public int Depth, Score, Bound;
 
         public TtEntry(ulong key, int depth, int score, int bound, Move move)
         {
@@ -47,8 +46,8 @@ public class MinusOneBot : IChessBot
         }
     }
 
-    public const int TtEntryCount = 1 << 22;
-    private TtEntry[] _tt = new TtEntry[TtEntryCount];
+    private const int TtEntriesCount = 1 << 22;
+    private TtEntry[] _tt = new TtEntry[TtEntriesCount];
 
     private int GetPstVal(int psq)
     {
@@ -69,12 +68,11 @@ public class MinusOneBot : IChessBot
                 {
                     phase += _piecePhase[piece];
                     ind = 128 * (piece - 1) + BitboardHelper.ClearAndGetIndexOfLSB(ref mask) ^ (stm ? 56 : 0);
-                    mg += _pieceVal[piece] + GetPstVal(ind);
-                    eg += _pieceVal[piece] + GetPstVal(ind + 64);
+                    mg += GetPstVal(ind) + _pieceVal[piece];
+                    eg += GetPstVal(ind + 64) + _pieceVal[piece];
                 }
             }
 
-            // Flip score; example white 2300 eval becomes -2300, after we calculate black 2000 it becomes -300 and 300 after last flip
             mg = -mg;
             eg = -eg;
         }
@@ -82,41 +80,43 @@ public class MinusOneBot : IChessBot
         return (mg * phase + eg * (24 - phase)) / 24 * (board.IsWhiteToMove ? 1 : -1);
     }
 
-    // Search our best next move by NegaMax, Q Search, TT and move ordering
-    private int Search(Board board, Timer timer, int timeLimit, int alpha, int beta, int depth, int ply)
+    // https://www.chessprogramming.org/Negamax
+    // https://www.chessprogramming.org/Quiescence_Search
+    public int Search(Board board, Timer timer, int alpha, int beta, int depth, int ply)
     {
         ulong key = board.ZobristKey;
-        bool qSearch = depth <= 0;
-        bool notRoot = ply > 0; // Normally don't use "not" variables but this is token effective (!root takes 2 tokens)
-        int bestScore = -30000;
+        bool qsearch = depth <= 0;
+        bool notRoot = ply > 0;
+        int best = -30000;
 
-        // Try to prevent a 3 fold repetition by slightly offsetting this position score
-        if (notRoot && board.IsRepeatedPosition()) return -10;
+        // Check for repetition (this is much more important than material and 50 move rule draws)
+        if (notRoot && board.IsRepeatedPosition())
+            return 0;
 
-        TtEntry entry = _tt[key % TtEntryCount];
+        TtEntry entry = _tt[key % TtEntriesCount];
 
-        // Try to find a board position that was already evaluated and re-use it
-        if (notRoot && entry.Key == key && entry.Depth >= depth
-            && (entry.Bound == 3
+        // TT cutoffs
+        if (notRoot && entry.Key == key && entry.Depth >= depth && (
+                entry.Bound == 3
                 || entry.Bound == 2 && entry.Score >= beta
                 || entry.Bound == 1 && entry.Score <= alpha
             )) return entry.Score;
 
         int eval = Evaluate(board);
 
-        // Quiescence search in same method to save tokens
-        if (qSearch)
+        // Quiescence search is in the same function as negamax to save tokens
+        if (qsearch)
         {
-            bestScore = eval;
-            if (bestScore >= beta) return bestScore;
-            alpha = Math.Max(alpha, bestScore);
+            best = eval;
+            if (best >= beta) return best;
+            alpha = Math.Max(alpha, best);
         }
 
-        // Generate moves, only captures when in q search
-        Move[] moves = board.GetLegalMoves(qSearch);
+        // Generate moves, only captures in qsearch
+        Move[] moves = board.GetLegalMoves(qsearch);
         int[] scores = new int[moves.Length];
 
-        // Sorting moves makes alpha beta pruning more effective, good moves are calculated first
+        // Score moves
         for (int i = 0; i < moves.Length; i++)
         {
             Move move = moves[i];
@@ -129,9 +129,10 @@ public class MinusOneBot : IChessBot
         Move bestMove = Move.NullMove;
         int origAlpha = alpha;
 
+        // Search moves
         for (int i = 0; i < moves.Length; i++)
         {
-            if (timer.MillisecondsElapsedThisTurn >= timeLimit) return 30000;
+            if (timer.MillisecondsElapsedThisTurn >= timer.MillisecondsRemaining / 30) return 30000;
 
             // Incrementally sort moves
             for (int j = i + 1; j < moves.Length; j++)
@@ -142,49 +143,49 @@ public class MinusOneBot : IChessBot
 
             Move move = moves[i];
             board.MakeMove(move);
-            int score = -Search(board, timer, timeLimit, -beta, -alpha, depth - 1, ply + 1);
+            int score = -Search(board, timer, -beta, -alpha, depth - 1, ply + 1);
             board.UndoMove(move);
 
             // New best move
-            if (score > bestScore)
+            if (score > best)
             {
-                bestScore = score;
+                best = score;
                 bestMove = move;
-
-                // When in root depth we're using this move as our next move
                 if (ply == 0) _bestMoveRoot = move;
+
                 // Improve alpha
                 alpha = Math.Max(alpha, score);
-                // Beta fail soft
+
+                // Fail-high
                 if (alpha >= beta) break;
             }
         }
 
         // (Check/Stale)mate
-        if (!qSearch && moves.Length == 0) return board.IsInCheck() ? -30000 + ply : 0;
+        if (!qsearch && moves.Length == 0) return board.IsInCheck() ? -30000 + ply : 0;
 
-        // Determine type of node cutoff
-        int bound = bestScore >= beta ? 2 : bestScore > origAlpha ? 3 : 1;
+        // Did we fail high/low or get an exact score?
+        int bound = best >= beta ? 2 : best > origAlpha ? 3 : 1;
 
-        // Save position and best move to transposition table
-        _tt[key % TtEntryCount] = new TtEntry(key, depth, bestScore, bound, bestMove);
+        // Push to TT
+        _tt[key % TtEntriesCount] = new TtEntry(key, depth, best, bound, bestMove);
 
-        return bestScore;
+        return best;
     }
 
     public Move Think(Board board, Timer timer)
     {
         _bestMoveRoot = Move.NullMove;
-        
-        int timeLimit = Math.Min(1000, timer.MillisecondsRemaining / 20);
-        
-        // Iterative deepening
+        // https://www.chessprogramming.org/Iterative_Deepening
         for (int depth = 1; depth <= 50; depth++)
         {
-            int score = Search(board, timer, timeLimit, -30000, 30000, depth, 0);
-            if (timer.MillisecondsElapsedThisTurn >= timeLimit) break;
+            int score = Search(board, timer, -30000, 30000, depth, 0);
+
+            // Out of time
+            if (timer.MillisecondsElapsedThisTurn >= timer.MillisecondsRemaining / 30)
+                break;
         }
-        
+
         return _bestMoveRoot.IsNull ? board.GetLegalMoves()[0] : _bestMoveRoot;
     }
 }

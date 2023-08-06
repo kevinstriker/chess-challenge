@@ -14,7 +14,7 @@
 -engine name="JacquesBot" cmd="/Users/kevinvermaat/Documents/other/chess-challenge-kevin/Chess-Challenge/bin/Debug/net6.0/Chess-Challenge" arg="uci" arg="JacquesBot" \
 -each proto=uci tc=60+0 restart=on \
 -sprt elo0=0 elo1=10 alpha=0.05 beta=0.05 \
--concurrency 10 -maxmoves 200 -rounds 20
+-concurrency 5 -maxmoves 200 -rounds 20
 -ratinginterval 20 \
 -pgnout sprt.pgn
 
@@ -24,7 +24,7 @@
 -engine name="MinusOneBot" cmd="/Users/kevinvermaat/Documents/other/chess-challenge-kevin/Chess-Challenge/bin/Debug/net6.0/Chess-Challenge" arg="uci" arg="MinusOneBot" \
 -each proto=uci tc=60+0 restart=on \
 -sprt elo0=0 elo1=10 alpha=0.05 beta=0.05 \
--concurrency 10 -maxmoves 200 -rounds 20 \
+-concurrency 5 -maxmoves 200 -rounds 20 \
 -ratinginterval 20 \
 -pgnout sprt.pgn
 
@@ -34,7 +34,7 @@
 -engine name="TyrantBot" cmd="/Users/kevinvermaat/Documents/other/chess-challenge-kevin/Chess-Challenge/bin/Debug/net6.0/Chess-Challenge" arg="uci" arg="TyrantBot" \
 -each proto=uci tc=60+0 restart=on \
 -sprt elo0=0 elo1=10 alpha=0.05 beta=0.05 \
--concurrency 10 -maxmoves 200 -rounds 20 \
+-concurrency 5 -maxmoves 200 -rounds 20 \
 -ratinginterval 20 \
 -pgnout sprt.pgn
 
@@ -44,7 +44,7 @@
 -engine name="LiteBlueBot5" cmd="/Users/kevinvermaat/Documents/other/chess-challenge-kevin/Chess-Challenge/bin/Debug/net6.0/Chess-Challenge" arg="uci" arg="LiteBlueBot5" \
 -each proto=uci tc=60+0 restart=on \
 -sprt elo0=0 elo1=10 alpha=0.05 beta=0.05 \
--concurrency 10 -maxmoves 200 -rounds 20 \
+-concurrency 5 -maxmoves 200 -rounds 20 \
 -ratinginterval 20 \
 -pgnout sprt.pgn
 
@@ -54,6 +54,6 @@
 -engine name="TyrantBot" cmd="/Users/kevinvermaat/Documents/other/chess-challenge-kevin/Chess-Challenge/bin/Debug/net6.0/Chess-Challenge" arg="uci" arg="TyrantBot" \
 -each proto=uci tc=60+0 restart=on \
 -sprt elo0=0 elo1=10 alpha=0.05 beta=0.05 \
--concurrency 10 -maxmoves 200 -rounds 20 \
+-concurrency 5 -maxmoves 200 -rounds 20 \
 -ratinginterval 20 \
 -pgnout sprt.pgn
