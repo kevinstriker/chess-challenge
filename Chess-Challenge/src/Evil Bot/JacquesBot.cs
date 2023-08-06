@@ -47,7 +47,7 @@ public class JacquesBot : IChessBot
         }
     }
 
-    const int entries = 0x3FFFFF;
+    const int entries = 4194304;
     TTEntry[] tt = new TTEntry[entries];
 
     public int getPstVal(int psq)

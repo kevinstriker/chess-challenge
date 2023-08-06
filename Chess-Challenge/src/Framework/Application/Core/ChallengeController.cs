@@ -29,6 +29,7 @@ namespace ChessChallenge.Application
             // Custom: other bots
             NegaMaxBot, // Tier 1 bot
             JacquesBot, // Tier 2 bot
+            TyrantBot,
             LiteBlueBot,
             LiteBlueBot2,
             LiteBlueBot3,
@@ -52,6 +53,7 @@ namespace ChessChallenge.Application
                 // Custom: other bots
                 PlayerType.NegaMaxBot => new NegaMaxBot(),
                 PlayerType.JacquesBot => new JacquesBot(),
+                PlayerType.TyrantBot => new TyrantBot(),
                 PlayerType.LiteBlueBot => new LiteBlueBot(),
                 PlayerType.LiteBlueBot2 => new LiteBlueBot2(),
                 PlayerType.LiteBlueBot3 => new LiteBlueBot3(),
@@ -253,12 +255,13 @@ namespace ChessChallenge.Application
                 PlayerType.EvilBot => new ChessPlayer(new EvilBot(), type, GameDurationMilliseconds),
                 PlayerType.MinusOneBot => new ChessPlayer(new MinusOneBot(), type, GameDurationMilliseconds),
                 PlayerType.NegaMaxBot => new ChessPlayer(new NegaMaxBot(), type, GameDurationMilliseconds),
+                PlayerType.JacquesBot => new ChessPlayer(new JacquesBot(), type, GameDurationMilliseconds),
+                PlayerType.TyrantBot => new ChessPlayer(new TyrantBot(), type, GameDurationMilliseconds),
                 PlayerType.LiteBlueBot => new ChessPlayer(new LiteBlueBot(), type, GameDurationMilliseconds),
                 PlayerType.LiteBlueBot2 => new ChessPlayer(new LiteBlueBot2(), type, GameDurationMilliseconds),
                 PlayerType.LiteBlueBot3 => new ChessPlayer(new LiteBlueBot3(), type, GameDurationMilliseconds),
                 PlayerType.LiteBlueBot4 => new ChessPlayer(new LiteBlueBot4(), type, GameDurationMilliseconds),
                 PlayerType.LiteBlueBot5 => new ChessPlayer(new LiteBlueBot5(), type, GameDurationMilliseconds),
-                PlayerType.JacquesBot => new ChessPlayer(new JacquesBot(), type, GameDurationMilliseconds),
                 PlayerType.MonteCarlo => new ChessPlayer(new MonteCarlo(), type, GameDurationMilliseconds),
                 PlayerType.AugsBot => new ChessPlayer(new AugsBot(), type, GameDurationMilliseconds),
                 PlayerType.SelenautBot => new ChessPlayer(new SelenautBot(), type, GameDurationMilliseconds),

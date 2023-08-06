@@ -57,6 +57,15 @@ public class LiteBlueBot3 : IChessBot
             depth_move = moves[0];
             int score = Negamax(depth, 0, -CHECKMATE, CHECKMATE);
 
+            Console.WriteLine("info depth {0,2} score {1,6} nodes {2,9} nps {3,8} time {4,5} pv {5}{6}",
+                depth,
+                score,
+                nodes,
+                1000 * nodes / (timer.MillisecondsElapsedThisTurn + 1),
+                timer.MillisecondsElapsedThisTurn,
+                depth_move.StartSquare.Name,
+                depth_move.TargetSquare.Name);
+                
             // Check if time is expired
             if (timer.MillisecondsElapsedThisTurn > time_limit)
                 break;
