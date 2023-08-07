@@ -30,7 +30,7 @@ namespace ChessChallenge.Application
             NegaMaxBot, // Tier 1 bot
             JacquesBot, // Tier 2 bot
             TyrantBot,
-            LiteBlueBot,
+            LiteBlueBot1,
             LiteBlueBot2,
             LiteBlueBot3,
             LiteBlueBot4,
@@ -54,7 +54,7 @@ namespace ChessChallenge.Application
                 PlayerType.NegaMaxBot => new NegaMaxBot(),
                 PlayerType.JacquesBot => new JacquesBot(),
                 PlayerType.TyrantBot => new TyrantBot(),
-                PlayerType.LiteBlueBot => new LiteBlueBot(),
+                PlayerType.LiteBlueBot1 => new LiteBlueBot1(),
                 PlayerType.LiteBlueBot2 => new LiteBlueBot2(),
                 PlayerType.LiteBlueBot3 => new LiteBlueBot3(),
                 PlayerType.LiteBlueBot4 => new LiteBlueBot4(),
@@ -257,7 +257,7 @@ namespace ChessChallenge.Application
                 PlayerType.NegaMaxBot => new ChessPlayer(new NegaMaxBot(), type, GameDurationMilliseconds),
                 PlayerType.JacquesBot => new ChessPlayer(new JacquesBot(), type, GameDurationMilliseconds),
                 PlayerType.TyrantBot => new ChessPlayer(new TyrantBot(), type, GameDurationMilliseconds),
-                PlayerType.LiteBlueBot => new ChessPlayer(new LiteBlueBot(), type, GameDurationMilliseconds),
+                PlayerType.LiteBlueBot1 => new ChessPlayer(new LiteBlueBot1(), type, GameDurationMilliseconds),
                 PlayerType.LiteBlueBot2 => new ChessPlayer(new LiteBlueBot2(), type, GameDurationMilliseconds),
                 PlayerType.LiteBlueBot3 => new ChessPlayer(new LiteBlueBot3(), type, GameDurationMilliseconds),
                 PlayerType.LiteBlueBot4 => new ChessPlayer(new LiteBlueBot4(), type, GameDurationMilliseconds),

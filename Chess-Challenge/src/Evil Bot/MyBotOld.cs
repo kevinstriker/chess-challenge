@@ -1,37 +1,14 @@
 using ChessChallenge.API;
 using System;
+using System.Linq;
 
-public class MinusOneBot : IChessBot
+public class MyBotOld : IChessBot
 {
     private int _nodes;
     
     private Move _bestMoveRoot = Move.NullMove;
-
-    // https://www.chessprogramming.org/PeSTO%27s_Evaluation_Function
-    private int[] _pieceVal = { 0, 100, 310, 330, 500, 1000, 10000 };
-    private int[] _piecePhase = { 0, 0, 1, 1, 2, 4, 0 };
-
-    private ulong[] _psts =
-    {
-        657614902731556116, 420894446315227099, 384592972471695068, 312245244820264086, 364876803783607569,
-        366006824779723922, 366006826859316500, 786039115310605588, 421220596516513823, 366011295806342421,
-        366006826859316436, 366006896669578452, 162218943720801556, 440575073001255824, 657087419459913430,
-        402634039558223453, 347425219986941203, 365698755348489557, 311382605788951956, 147850316371514514,
-        329107007234708689, 402598430990222677, 402611905376114006, 329415149680141460, 257053881053295759,
-        291134268204721362, 492947507967247313, 367159395376767958, 384021229732455700, 384307098409076181,
-        402035762391246293, 328847661003244824, 365712019230110867, 366002427738801364, 384307168185238804,
-        347996828560606484, 329692156834174227, 365439338182165780, 386018218798040211, 456959123538409047,
-        347157285952386452, 365711880701965780, 365997890021704981, 221896035722130452, 384289231362147538,
-        384307167128540502, 366006826859320596, 366006826876093716, 366002360093332756, 366006824694793492,
-        347992428333053139, 457508666683233428, 329723156783776785, 329401687190893908, 366002356855326100,
-        366288301819245844, 329978030930875600, 420621693221156179, 422042614449657239, 384602117564867863,
-        419505151144195476, 366274972473194070, 329406075454444949, 275354286769374224, 366855645423297932,
-        329991151972070674, 311105941360174354, 256772197720318995, 365993560693875923, 258219435335676691,
-        383730812414424149, 384601907111998612, 401758895947998613, 420612834953622999, 402607438610388375,
-        329978099633296596, 67159620133902
-    };
-
-    // https://www.chessprogramming.org/Transposition_Table
+    
+    // Transposition table
     private struct TtEntry
     {
         public ulong Key;
@@ -47,57 +24,87 @@ public class MinusOneBot : IChessBot
             Move = move;
         }
     }
-
     private const int TtEntriesCount = 1 << 22;
     private TtEntry[] _tt = new TtEntry[TtEntriesCount];
-
-    private int GetPstVal(int psq)
+    
+    // Evaluation and unpacking credits to LiteBlueBot
+    readonly int[] _phaseWeight = { 0, 1, 1, 2, 4, 0 };
+    private readonly short[] _pvm = { 82, 337, 365, 477, 1025, 20000, 94, 281, 297, 512, 936, 20000};
+    private readonly decimal[] _packedPsqt = {
+        63746705523041458768562654720m, 71818693703096985528394040064m, 75532537544690978830456252672m, 75536154932036771593352371712m, 76774085526445040292133284352m, 3110608541636285947269332480m, 936945638387574698250991104m, 75531285965747665584902616832m,
+        77047302762000299964198997571m, 3730792265775293618620982364m, 3121489077029470166123295018m, 3747712412930601838683035969m, 3763381335243474116535455791m, 8067176012614548496052660822m, 4977175895537975520060507415m, 2475894077091727551177487608m,
+        2458978764687427073924784380m, 3718684080556872886692423941m, 4959037324412353051075877138m, 3135972447545098299460234261m, 4371494653131335197311645996m, 9624249097030609585804826662m, 9301461106541282841985626641m, 2793818196182115168911564530m,
+        77683174186957799541255830262m, 4660418590176711545920359433m, 4971145620211324499469864196m, 5608211711321183125202150414m, 5617883191736004891949734160m, 7150801075091790966455611144m, 5619082524459738931006868492m, 649197923531967450704711664m,
+        75809334407291469990832437230m, 78322691297526401047122740223m, 4348529951871323093202439165m, 4990460191572192980035045640m, 5597312470813537077508379404m, 4980755617409140165251173636m, 1890741055734852330174483975m, 76772801025035254361275759599m,
+        75502243563200070682362835182m, 78896921543467230670583692029m, 2489164206166677455700101373m, 4338830174078735659125311481m, 4960199192571758553533648130m, 3420013420025511569771334658m, 1557077491473974933188251927m, 77376040767919248347203368440m,
+        73949978050619586491881614568m, 77043619187199676893167803647m, 1212557245150259869494540530m, 3081561358716686153294085872m, 3392217589357453836837847030m, 1219782446916489227407330320m, 78580145051212187267589731866m, 75798434925965430405537592305m,
+        68369566912511282590874449920m, 72396532057599326246617936384m, 75186737388538008131054524416m, 77027917484951889231108827392m, 73655004947793353634062267392m, 76417372019396591550492896512m, 74568981255592060493492515584m, 70529879645288096380279255040m,
+    };
+    private readonly int[][] _psqt;
+    
+    public MyBotOld()
     {
-        return (int)(((_psts[psq / 10] >> (6 * (psq % 10))) & 63) - 20) * 8;
+        _psqt = new int[64][];
+        _psqt = _packedPsqt.Select(packedPsqt =>
+        {
+            int pieceType = 0;
+            return decimal.GetBits(packedPsqt).Take(3)
+                .SelectMany(c => BitConverter.GetBytes(c)
+                    .Select((byte square) => (int)((sbyte)square * 1.461) + _pvm[pieceType++]))
+                .ToArray();
+        }).ToArray();
     }
 
     private int Evaluate(Board board)
     {
+        // Define evaluation variables
         int mg = 0, eg = 0, phase = 0;
-
+        // Iterate through both players
         foreach (bool stm in new[] { true, false })
         {
-            for (var p = PieceType.Pawn; p <= PieceType.King; p++)
+            // Iterate through all piece types
+            for (int piece = -1; ++piece < 6;)
             {
-                int piece = (int)p, ind;
-                ulong mask = board.GetPieceBitboard(p, stm);
-                while (mask != 0)
+                // Get piece bitboard
+                ulong bb = board.GetPieceBitboard((PieceType)piece + 1, stm);
+                // Iterate through each individual piece
+                while (bb != 0)
                 {
-                    phase += _piecePhase[piece];
-                    ind = 128 * (piece - 1) + BitboardHelper.ClearAndGetIndexOfLSB(ref mask) ^ (stm ? 56 : 0);
-                    mg += GetPstVal(ind) + _pieceVal[piece];
-                    eg += GetPstVal(ind + 64) + _pieceVal[piece];
+                    // Get square index for pst based on color
+                    int sq = BitboardHelper.ClearAndGetIndexOfLSB(ref bb) ^ (stm ? 56 : 0);
+                    // Increment mg and eg score
+                    mg += _psqt[sq][piece];
+                    eg += _psqt[sq][piece + 6];
+                    // Updating position phase
+                    phase += _phaseWeight[piece];
                 }
             }
-
+            // Flip sign of eval before switching sides
             mg = -mg;
             eg = -eg;
         }
-
+        // Tapered evaluation
         return (mg * phase + eg * (24 - phase)) / 24 * (board.IsWhiteToMove ? 1 : -1);
     }
 
     // https://www.chessprogramming.org/Negamax
     // https://www.chessprogramming.org/Quiescence_Search
-    public int Search(Board board, Timer timer, int alpha, int beta, int depth, int ply)
+    private int Search(Board board, Timer timer, int alpha, int beta, int depth, int ply)
     {
         _nodes++;
         
         ulong key = board.ZobristKey;
         bool qsearch = depth <= 0;
         bool notRoot = ply > 0;
-        int best = -30000;
+        
+        int bestScore = -30000;
 
         // Check for repetition (this is much more important than material and 50 move rule draws)
-        if (notRoot && board.IsRepeatedPosition()) return 0;
+        if (notRoot && board.IsRepeatedPosition())
+            return 0;
 
         TtEntry entry = _tt[key % TtEntriesCount];
-        
+
         // TT cutoffs
         if (notRoot && entry.Key == key && entry.Depth >= depth && (
                 entry.Bound == 3
@@ -110,9 +117,9 @@ public class MinusOneBot : IChessBot
         // Quiescence search is in the same function as negamax to save tokens
         if (qsearch)
         {
-            best = eval;
-            if (best >= beta) return best;
-            alpha = Math.Max(alpha, best);
+            bestScore = eval;
+            if (bestScore >= beta) return bestScore;
+            alpha = Math.Max(alpha, bestScore);
         }
 
         // Generate moves, only captures in qsearch
@@ -150,9 +157,9 @@ public class MinusOneBot : IChessBot
             board.UndoMove(move);
 
             // New best move
-            if (score > best)
+            if (score > bestScore)
             {
-                best = score;
+                bestScore = score;
                 bestMove = move;
                 if (ply == 0) _bestMoveRoot = move;
 
@@ -168,12 +175,12 @@ public class MinusOneBot : IChessBot
         if (!qsearch && moves.Length == 0) return board.IsInCheck() ? -30000 + ply : 0;
 
         // Did we fail high/low or get an exact score?
-        int bound = best >= beta ? 2 : best > origAlpha ? 3 : 1;
+        int bound = bestScore >= beta ? 2 : bestScore > origAlpha ? 3 : 1;
 
         // Push to TT
-        _tt[key % TtEntriesCount] = new TtEntry(key, depth, best, bound, bestMove);
+        _tt[key % TtEntriesCount] = new TtEntry(key, depth, bestScore, bound, bestMove);
 
-        return best;
+        return bestScore;
     }
 
     public Move Think(Board board, Timer timer)
@@ -181,13 +188,14 @@ public class MinusOneBot : IChessBot
         _nodes = 0;
         
         _bestMoveRoot = Move.NullMove;
+        
         // https://www.chessprogramming.org/Iterative_Deepening
         for (int depth = 1; depth <= 50; depth++)
         {
             int score = Search(board, timer, -30000, 30000, depth, 0);
 
             // UCI Debug Logging
-            Console.ForegroundColor = ConsoleColor.DarkYellow;
+            Console.ForegroundColor = ConsoleColor.DarkMagenta;
             Console.WriteLine("info depth {0,2} score {1,6} nodes {2,9} nps {3,8} time {4,5} pv {5}{6}",
                 depth,
                 score,

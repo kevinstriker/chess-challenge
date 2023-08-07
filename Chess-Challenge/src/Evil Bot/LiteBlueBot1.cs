@@ -1,10 +1,7 @@
 using ChessChallenge.API;
 using System;
-using System.Linq;
-using System.Numerics;
-using System.Collections.Generic;
 
-public class LiteBlueBot : IChessBot
+public class LiteBlueBot1 : IChessBot
 {
     int CHECKMATE = 100000;
     static Board board;
@@ -23,7 +20,7 @@ public class LiteBlueBot : IChessBot
 
     public Move Iterative_Deepening()
     {
-        time_limit = timer.MillisecondsRemaining / 40;
+        time_limit = timer.MillisecondsRemaining / 2000;
         start = DateTime.Now;
         nodes = 0;
 
@@ -40,19 +37,9 @@ public class LiteBlueBot : IChessBot
 
             best_move = depth_move;
 
-            Console.WriteLine(String.Format("depth {0} score {1} nodes {2} nps {3} time {4} pv {5}{6}",
-                depth,
-                score,
-                nodes,
-                (Int64)(1000 * nodes / (DateTime.Now - start).TotalMilliseconds),
-                (int)(DateTime.Now - start).TotalMilliseconds,
-                best_move.StartSquare.Name,
-                best_move.TargetSquare.Name));
-
             if (score > CHECKMATE / 2)
                 break;
         }
-        Console.WriteLine();
 
         return best_move;
     }
@@ -66,7 +53,8 @@ public class LiteBlueBot : IChessBot
         if (board.IsDraw()) return 0;
         if (depth <= 0) return Q_Search(ply, 0, alpha, beta);
 
-        Move[] moves = board.GetLegalMoves();
+        System.Span<Move> moves = stackalloc Move[256];
+        board.GetLegalMovesNonAlloc(ref moves);
         foreach (Move move in moves)
         {
             board.MakeMove(move);

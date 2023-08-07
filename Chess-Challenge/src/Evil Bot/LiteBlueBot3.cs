@@ -14,26 +14,19 @@ public class LiteBlueBot3 : IChessBot
 
     // Types of Nodes
     int ALPHA_FLAG = 0, EXACT_FLAG = 1, BETA_FLAG = 2;
-
     // TT Entry Definition
     struct Entry
     {
         public ulong key;
         public int score, depth, flag;
         public Move move;
-
         public Entry(ulong _key, int _score, int _depth, int _flag, Move _move)
         {
-            key = _key;
-            score = _score;
-            depth = _depth;
-            flag = _flag;
-            move = _move;
+            key = _key; score = _score; depth = _depth; flag = _flag; move = _move;
         }
     }
-
     // TT Definition
-    const int TT_ENTRIES = 0x3FFFFF;
+    const int TT_ENTRIES = 1 << 20;
     Entry[] tt = new Entry[TT_ENTRIES];
 
     // Required Think Method
@@ -42,7 +35,7 @@ public class LiteBlueBot3 : IChessBot
         board = _board;
         timer = _timer;
         nodes = 0;
-        time_limit = timer.MillisecondsRemaining / 40;
+        time_limit = timer.MillisecondsRemaining / 2000;
         return Iterative_Deepening();
     }
 
@@ -57,15 +50,6 @@ public class LiteBlueBot3 : IChessBot
             depth_move = moves[0];
             int score = Negamax(depth, 0, -CHECKMATE, CHECKMATE);
 
-            Console.WriteLine("info depth {0,2} score {1,6} nodes {2,9} nps {3,8} time {4,5} pv {5}{6}",
-                depth,
-                score,
-                nodes,
-                1000 * nodes / (timer.MillisecondsElapsedThisTurn + 1),
-                timer.MillisecondsElapsedThisTurn,
-                depth_move.StartSquare.Name,
-                depth_move.TargetSquare.Name);
-                
             // Check if time is expired
             if (timer.MillisecondsElapsedThisTurn > time_limit)
                 break;
@@ -107,7 +91,7 @@ public class LiteBlueBot3 : IChessBot
                     tt_entry.flag == EXACT_FLAG ||
                     (tt_entry.flag == BETA_FLAG && tt_entry.score >= beta)
                 )
-               )
+            )
                 return tt_entry.score;
         }
 
@@ -148,10 +132,7 @@ public class LiteBlueBot3 : IChessBot
         }
 
         // If there are no moves return either checkmate or draw
-        if (!q_search && moves.Length == 0)
-        {
-            return board.IsInCheck() ? -CHECKMATE + ply : 0;
-        }
+        if (!q_search && moves.Length == 0) { return board.IsInCheck() ? -CHECKMATE + ply : 0; }
 
         // Determine type of node cutoff
         int flag = best_score >= beta ? BETA_FLAG : best_score > start_alpha ? EXACT_FLAG : ALPHA_FLAG;
@@ -167,25 +148,7 @@ public class LiteBlueBot3 : IChessBot
     readonly int[] phase_weight = { 0, 0, 1, 1, 2, 4, 0 };
 
     // thanks for the compressed pst implementation https://github.com/JacquesRW
-    readonly ulong[] pst_compressed =
-    {
-        657614902731556116, 420894446315227099, 384592972471695068, 312245244820264086, 364876803783607569,
-        366006824779723922, 366006826859316500, 786039115310605588, 421220596516513823, 366011295806342421,
-        366006826859316436, 366006896669578452, 162218943720801556, 440575073001255824, 657087419459913430,
-        402634039558223453, 347425219986941203, 365698755348489557, 311382605788951956, 147850316371514514,
-        329107007234708689, 402598430990222677, 402611905376114006, 329415149680141460, 257053881053295759,
-        291134268204721362, 492947507967247313, 367159395376767958, 384021229732455700, 384307098409076181,
-        402035762391246293, 328847661003244824, 365712019230110867, 366002427738801364, 384307168185238804,
-        347996828560606484, 329692156834174227, 365439338182165780, 386018218798040211, 456959123538409047,
-        347157285952386452, 365711880701965780, 365997890021704981, 221896035722130452, 384289231362147538,
-        384307167128540502, 366006826859320596, 366006826876093716, 366002360093332756, 366006824694793492,
-        347992428333053139, 457508666683233428, 329723156783776785, 329401687190893908, 366002356855326100,
-        366288301819245844, 329978030930875600, 420621693221156179, 422042614449657239, 384602117564867863,
-        419505151144195476, 366274972473194070, 329406075454444949, 275354286769374224, 366855645423297932,
-        329991151972070674, 311105941360174354, 256772197720318995, 365993560693875923, 258219435335676691,
-        383730812414424149, 384601907111998612, 401758895947998613, 420612834953622999, 402607438610388375,
-        329978099633296596, 67159620133902
-    };
+    readonly ulong[] pst_compressed = { 657614902731556116, 420894446315227099, 384592972471695068, 312245244820264086, 364876803783607569, 366006824779723922, 366006826859316500, 786039115310605588, 421220596516513823, 366011295806342421, 366006826859316436, 366006896669578452, 162218943720801556, 440575073001255824, 657087419459913430, 402634039558223453, 347425219986941203, 365698755348489557, 311382605788951956, 147850316371514514, 329107007234708689, 402598430990222677, 402611905376114006, 329415149680141460, 257053881053295759, 291134268204721362, 492947507967247313, 367159395376767958, 384021229732455700, 384307098409076181, 402035762391246293, 328847661003244824, 365712019230110867, 366002427738801364, 384307168185238804, 347996828560606484, 329692156834174227, 365439338182165780, 386018218798040211, 456959123538409047, 347157285952386452, 365711880701965780, 365997890021704981, 221896035722130452, 384289231362147538, 384307167128540502, 366006826859320596, 366006826876093716, 366002360093332756, 366006824694793492, 347992428333053139, 457508666683233428, 329723156783776785, 329401687190893908, 366002356855326100, 366288301819245844, 329978030930875600, 420621693221156179, 422042614449657239, 384602117564867863, 419505151144195476, 366274972473194070, 329406075454444949, 275354286769374224, 366855645423297932, 329991151972070674, 311105941360174354, 256772197720318995, 365993560693875923, 258219435335676691, 383730812414424149, 384601907111998612, 401758895947998613, 420612834953622999, 402607438610388375, 329978099633296596, 67159620133902 };
 
     // Get pst value from compressed table
     public int Get_Pst_Bonus(int psq)
@@ -213,8 +176,7 @@ public class LiteBlueBot3 : IChessBot
                 while (bb > 0)
                 {
                     // Index within compressed pst
-                    int index = 128 * (piece_type - 1) + BitboardHelper.ClearAndGetIndexOfLSB(ref bb) ^
-                                (side == 1 ? 56 : 0);
+                    int index = 128 * (piece_type - 1) + BitboardHelper.ClearAndGetIndexOfLSB(ref bb) ^ (side == 1 ? 56 : 0);
                     // Increment mg and eg score
                     score_mg[side] += pvm_mg[piece_type] + Get_Pst_Bonus(index);
                     score_eg[side] += pvm_eg[piece_type] + Get_Pst_Bonus(index + 64);
@@ -231,8 +193,7 @@ public class LiteBlueBot3 : IChessBot
         phase = Math.Min(phase, 24);
 
         // Tapered evaluation
-        return ((score_mg[turn] - score_mg[turn ^ 1]) * phase + (score_eg[turn] - score_eg[turn ^ 1]) * (24 - phase)) /
-               24;
+        return ((score_mg[turn] - score_mg[turn ^ 1]) * phase + (score_eg[turn] - score_eg[turn ^ 1]) * (24 - phase)) / 24;
     }
 
     // Score moves using TT and MVV-LVA
