@@ -12,7 +12,7 @@ public class NegaMaxBot : IChessBot
 
     public Move Think(Board board, Timer timer)
     {
-        mDepth = 5;
+        mDepth = 6;
 
         EvaluateBoardNegaMax(board, mDepth, -kMassiveNum, kMassiveNum, board.IsWhiteToMove ? 1 : -1);
 

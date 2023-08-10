@@ -21,33 +21,41 @@ public static class DebugHelper
         return "";
     }
 
-    public static void LogDepth(Board board, Timer timer, MyBot.TtEntry[] tt, int depth, int score, long nodes, long qNodes, long nps)
+    */
+    public static void LogDepth(Board board, Timer timer, int depth, int score, long nodes, long qNodes)
     {
+        // Time
         string timeString = "\x1b[37mtime\u001b[38;5;214m " + timer.MillisecondsElapsedThisTurn + "ms\x1b[37m\x1b[0m";
         timeString += string.Concat(Enumerable.Repeat(" ", 38 - timeString.Length));
 
+        // Depth level
         string depthString = "\x1b[1m\u001b[38;2;251;96;27mdepth " + (depth) + " ply\x1b[0m";
         depthString += string.Concat(Enumerable.Repeat(" ", 38 - depthString.Length));
 
+        // Best Eval
         string bestEvalString = string.Format("\x1b[37meval\x1b[36m {0:0} \x1b[37m", score);
         bestEvalString += string.Concat(Enumerable.Repeat(" ", 27 - bestEvalString.Length));
 
+        // Nodes
         string nodesString = "\x1b[37mnodes\x1b[35m " + nodes + "\x1b[37m";
         nodesString += string.Concat(Enumerable.Repeat(" ", 29 - nodesString.Length));
 
+        // Q Nodes
         string qnodesString = "\x1b[37mqnodes\x1b[34m " + qNodes + "\x1b[37m";
         qnodesString += string.Concat(Enumerable.Repeat(" ", 32 - qnodesString.Length));
         
+        // Nodes per second
+        long nps = 1000 * nodes / (timer.MillisecondsElapsedThisTurn + 1);
         string npsString = "\x1b[37mnps\x1b[34m " + nps + "\x1b[37m";
         npsString += string.Concat(Enumerable.Repeat(" ", 32 - qnodesString.Length));
 
-        string pvString = "\x1b[37mpv\x1b[33m " + GetPv(board, tt, MyBot.TtEntryCount, depth);
+        // string pvString = "\x1b[37mpv\x1b[33m " + GetPv(board, tt, MyBot.TtEntryCount, depth);
 
         Console.WriteLine(string.Join(" ",
             new string[]
             {
-                depthString, timeString, bestEvalString, nodesString, qnodesString, npsString, pvString
+                depthString, timeString, bestEvalString, nodesString, qnodesString, npsString
             }));
     }
-    */
+    
 }

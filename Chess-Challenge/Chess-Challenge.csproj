@@ -9,6 +9,14 @@
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
 
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <DefineConstants>DEBUG</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <DefineConstants>RELEASe</DefineConstants>
+  </PropertyGroup>
+
   <ItemGroup>
     <Reference Include="Microsoft.CodeAnalysis">
       <HintPath>src\Token Counter\Microsoft.CodeAnalysis.dll</HintPath>
