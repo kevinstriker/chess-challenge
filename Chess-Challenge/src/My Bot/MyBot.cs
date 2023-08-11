@@ -18,6 +18,7 @@ public class MyBot : IChessBot
         public ulong Key;
         public int Score, Depth, Flag;
         public Move Move;
+
         public TtEntry(ulong key, int score, int depth, int flag, Move move)
         {
             Key = key;
@@ -29,16 +30,30 @@ public class MyBot : IChessBot
     }
     const int TtEntryCount = 1 << 22;
     TtEntry[] _tt = new TtEntry[TtEntryCount];
-    
-    
+
     // Time management
     private Timer _timer;
-    
+
     // Evaluate
     //                                P    K    B    R    Q    K
-    private int[] _pieceValues = { 0, 100, 300, 300, 500, 900, 10000 };
+    private int[] _pieceValues = { 0, 100, 300, 300, 500, 900, 0 };
     private const int Checkmate = 30000;
-    public Move DepthMove;
+
+    // functions that attempt to simulate a piece square table
+    static int[] _edgeDist = { 0, 1, 2, 3, 3, 2, 1, 0 };
+    private static Func<Square, int>[] _psqt =
+    {
+        sq => 0,
+        sq => sq.Rank * 10 - 10 + (sq.Rank == 1 && _edgeDist[sq.File] != 3 ? 40 : 0) +
+              (_edgeDist[sq.Rank] == 3 && _edgeDist[sq.File] == 3 ? 10 : 0),
+        sq => (_edgeDist[sq.Rank] + _edgeDist[sq.File]) * 10,
+        sq => _psqt[2](sq),
+        sq => sq.Rank == 6 ? 10 : 0 + ((sq.Rank == 0 && _edgeDist[sq.File] == 3) ? 10 : 0),
+        sq => (_edgeDist[sq.Rank] + _edgeDist[sq.File]) * 5,
+        sq => (3 - _edgeDist[sq.Rank] + 3 - _edgeDist[sq.File]) * 10 - 5 - (sq.Rank > 1 ? 50 : 0)
+    };
+
+    public Move BestMove;
 
     private int Evaluate(Board board)
     {
@@ -47,14 +62,14 @@ public class MyBot : IChessBot
         // Loop both players, first white (true) and after black
         foreach (bool color in new[] { true, false })
         {
-            for (PieceType pieceType = PieceType.Pawn; pieceType < PieceType.King; pieceType++)
+            for (PieceType pieceType = PieceType.Pawn; pieceType <= PieceType.King; pieceType++)
             {
                 int p = (int)pieceType;
                 ulong hash = board.GetPieceBitboard(pieceType, color);
                 while (hash != 0)
                 {
-                    BitboardHelper.ClearAndGetIndexOfLSB(ref hash);
-                    score += _pieceValues[p];
+                    Square square = new Square(BitboardHelper.ClearAndGetIndexOfLSB(ref hash));
+                    score += _pieceValues[p] + _psqt[p](square);
                 }
             }
 
@@ -113,7 +128,7 @@ public class MyBot : IChessBot
                 // tt moves were stored for a reason so let's evaluate them first
                 move == ttEntry.Move ? 100000 :
                 // Capturing moves are often a good idea if you capture a piece more valuable than yours
-                move.IsCapture ? 1000 * (int)move.CapturePieceType - (int)move.MovePieceType : 
+                move.IsCapture ? 1000 * (int)move.CapturePieceType - (int)move.MovePieceType :
                 // Pawn promotions are often best (who wouldn't like a new queen)
                 move.IsPromotion ? 100 : 0;
         }
@@ -131,7 +146,7 @@ public class MyBot : IChessBot
 
             if (score > bestScore)
             {
-                if (root) DepthMove = move;
+                if (root) BestMove = move;
                 ttMove = move;
 
                 bestScore = score;
@@ -157,10 +172,10 @@ public class MyBot : IChessBot
 
         // Timer used in NegaMax
         _timer = timer;
-        
+
         // Reset the depth move to prevent lingering moves 
-        DepthMove = Move.NullMove;
-        
+        BestMove = Move.NullMove;
+
         // Iterative deepening
         for (int depth = 1; depth < 50; depth++)
         {
@@ -168,11 +183,12 @@ public class MyBot : IChessBot
 
             DebugHelper.LogDepth(board, timer, depth, score, Nodes, 0);
 
-            if (!InTest && timer.MillisecondsElapsedThisTurn > timer.MillisecondsRemaining / 40) break;
+            if (!InTest && (timer.MillisecondsElapsedThisTurn > timer.MillisecondsRemaining / 40
+                            || score > 15000)) break;
         }
 
         Console.WriteLine();
 
-        return DepthMove.IsNull ? board.GetLegalMoves()[0] : DepthMove;
+        return BestMove.IsNull ? board.GetLegalMoves()[0] : BestMove;
     }
 }

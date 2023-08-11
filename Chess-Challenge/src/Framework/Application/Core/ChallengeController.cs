@@ -268,7 +268,7 @@ namespace ChessChallenge.Application
                 PlayerType.MonteCarlo => new ChessPlayer(new MonteCarlo(), type, GameDurationMilliseconds),
                 PlayerType.AugsBot => new ChessPlayer(new AugsBot(), type, GameDurationMilliseconds),
                 PlayerType.SelenautBot => new ChessPlayer(new SelenautBot(), type, GameDurationMilliseconds),
-                PlayerType.StockFishBot => new ChessPlayer(new StockFishBot(0), type, GameDurationMilliseconds),
+                PlayerType.StockFishBot => new ChessPlayer(new StockFishBot(), type, GameDurationMilliseconds),
                 _ => new ChessPlayer(new HumanPlayer(boardUI), type)
             };
         }

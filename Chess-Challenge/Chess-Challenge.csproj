@@ -57,6 +57,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="resources\Stockfish\" />
     <Folder Include="src\Framework\Chess\" />
   </ItemGroup>
 
