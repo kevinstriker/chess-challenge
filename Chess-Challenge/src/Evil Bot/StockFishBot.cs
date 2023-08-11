@@ -12,7 +12,7 @@ namespace ChessChallenge.Example
         {
             Stockfish.NET.Models.Settings stockfishSettings = new Stockfish.NET.Models.Settings();
             stockfishSettings.SkillLevel = level;
-            mStockFish = new Stockfish.NET.Stockfish(@"resources/stockfish/stockfish-11-64", 2, stockfishSettings);
+            mStockFish = new Stockfish.NET.Stockfish(@"resources/Stockfish/stockfish-11-64", 2, stockfishSettings);
         }
 
         public Move Think(Board board, Timer timer)

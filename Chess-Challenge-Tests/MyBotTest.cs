@@ -84,6 +84,26 @@ public class MyBotTest
 
     #endregion
 
+    #region Move ordering
+
+    [Test]
+    public void TestMoveOrdering()
+    {
+        const string fen = "2b1kb1r/P1pppppp/4nn2/1N4q1/2B2B2/4PN1P/1PPPQPP1/R3K2R w KQk - 0 1";
+        _testBoard = Board.CreateBoardFromFEN(fen);
+
+        _stopwatch.Restart();
+
+        int score = _myBot.NegaMax(_testBoard, 1, 0, -30000, 30000);
+
+        _stopwatch.Stop();
+        
+
+        LogAll(score);
+    }
+    
+    #endregion
+
     #region Defensive
 
     [Test]
