@@ -84,3 +84,20 @@ Puzzle 2
 
 Puzzle 3
 > score 100, time 104ms, nodes 160408, nps 1527695, DepthMove Rook-d8a8
+
+
+# TT with my cutoff
+
+Puzzle 4
+> score -200, time 6204ms, nodes 12319984, nps -91042, DepthMove Queen-a5a2
+
+Puzzle 5
+> score -100, time 930ms, nodes 2422102, nps -2011670, DepthMove Pawn-g5g4
+
+# TT with JW cutoff
+Puzzle 4
+> score -200, time 9014ms, nodes 16945018, nps -26051, DepthMove Queen-a5a2
+
+Puzzle 5
+> score -130, time 1018ms, nodes 2609904, nps -1653644, DepthMove Pawn-g5g4
+

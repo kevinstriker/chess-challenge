@@ -40,24 +40,18 @@ namespace ChessChallenge.Application
                     ChallengeController.PlayerType.StockFishBot);
             }   
 
-
-            if (NextButtonInRow("MyBot vs LBB2", ref buttonPos, spacing, buttonSize))
+            if (NextButtonInRow("MyBot vs MinusOne", ref buttonPos, spacing, buttonSize))
             {
                 controller.StartNewBotMatch(ChallengeController.PlayerType.MyBot,
-                    ChallengeController.PlayerType.LiteBlueBot2);
+                    ChallengeController.PlayerType.MinusOneBot);
             }
             
-            if (NextButtonInRow("MyBot vs LBB3", ref buttonPos, spacing, buttonSize))
+            if (NextButtonInRow("MyBot vs LBB4", ref buttonPos, spacing, buttonSize))
             {
                 controller.StartNewBotMatch(ChallengeController.PlayerType.MyBot,
-                    ChallengeController.PlayerType.LiteBlueBot3);
+                    ChallengeController.PlayerType.LiteBlueBot4);
             }
             
-            if (NextButtonInRow("MyBot vs LBB5", ref buttonPos, spacing, buttonSize))
-            {
-                controller.StartNewBotMatch(ChallengeController.PlayerType.MyBot,
-                    ChallengeController.PlayerType.LiteBlueBot5);
-            }   
             
             // Page buttons
             buttonPos.Y += breakSpacing;

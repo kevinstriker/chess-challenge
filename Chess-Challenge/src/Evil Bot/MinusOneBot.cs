@@ -1,14 +1,27 @@
-using ChessChallenge.API;
 using System;
+using System.Linq;
+using ChessChallenge.API;
 
+/*
+ * So here we go, 8 august, let's start from scratch, let's name this project CosmicChessAI
+ * The idea is to turtle, run out the timer of the opponent and after strike during the mid-game
+ */
 public class MinusOneBot : IChessBot
 {
-    private int _nodes;
-    
-    private Move _bestMoveRoot = Move.NullMove;
+    public int Nodes;
+    public int QNodes;
 
-    // https://www.chessprogramming.org/PeSTO%27s_Evaluation_Function
-    private int[] _pieceVal = { 0, 100, 310, 330, 500, 1000, 10000 };
+    // Transposition table
+    
+    public const int TtEntryCount = 1 << 22;
+    public MyBot.TtEntry[] Tt = new MyBot.TtEntry[TtEntryCount];
+    
+    // Time management
+    public Timer Timer;
+
+    // Evaluate
+    //                                P    K    B    R    Q     K
+    private int[] _pieceValues = { 0, 100, 310, 330, 500, 1000, 10000 };
     private int[] _piecePhase = { 0, 0, 1, 1, 2, 4, 0 };
 
     private ulong[] _psts =
@@ -31,177 +44,184 @@ public class MinusOneBot : IChessBot
         329978099633296596, 67159620133902
     };
 
-    // https://www.chessprogramming.org/Transposition_Table
-    private struct TtEntry
-    {
-        public ulong Key;
-        public Move Move;
-        public int Depth, Score, Bound;
+    public Move BestMove;
 
-        public TtEntry(ulong key, int depth, int score, int bound, Move move)
-        {
-            Key = key;
-            Depth = depth;
-            Score = score;
-            Bound = bound;
-            Move = move;
-        }
-    }
-
-    private const int TtEntriesCount = 1 << 22;
-    private TtEntry[] _tt = new TtEntry[TtEntriesCount];
-
+    // A getter method thanks to example bot JW 
     private int GetPstVal(int psq)
     {
         return (int)(((_psts[psq / 10] >> (6 * (psq % 10))) & 63) - 20) * 8;
     }
 
+    // Tapered evaluation that takes mid-game and end-game priorities into account 
     private int Evaluate(Board board)
     {
         int mg = 0, eg = 0, phase = 0;
 
-        foreach (bool stm in new[] { true, false })
+        // Loop both players, first white (true) and after black
+        foreach (bool color in new[] { true, false })
         {
-            for (var p = PieceType.Pawn; p <= PieceType.King; p++)
+            for (PieceType pieceType = PieceType.Pawn; pieceType <= PieceType.King; pieceType++)
             {
-                int piece = (int)p, ind;
-                ulong mask = board.GetPieceBitboard(p, stm);
-                while (mask != 0)
+                int p = (int)pieceType;
+                ulong hash = board.GetPieceBitboard(pieceType, color);
+                while (hash != 0)
                 {
-                    phase += _piecePhase[piece];
-                    ind = 128 * (piece - 1) + BitboardHelper.ClearAndGetIndexOfLSB(ref mask) ^ (stm ? 56 : 0);
-                    mg += GetPstVal(ind) + _pieceVal[piece];
-                    eg += GetPstVal(ind + 64) + _pieceVal[piece];
+                    phase += _piecePhase[p];
+                    int ind = 128 * (p - 1) + BitboardHelper.ClearAndGetIndexOfLSB(ref hash) ^ (color ? 56 : 0);
+                    mg += _pieceValues[p] + GetPstVal(ind);
+                    eg += _pieceValues[p] + GetPstVal(ind + 64);
                 }
             }
 
+            // Flip score for optimised token count (always white perspective due to double flip)
+            // Eg. White eval = 2300 -> flip -> -2300 -> black eval = 2000 -> -300 -> flip -> 300 
             mg = -mg;
             eg = -eg;
         }
 
+        // Since we evaluate after making the move, the isWhiteToMove is the other player, so ? 1 : -1
+        // Use tapered eval to smooth into endgame strategy when required
         return (mg * phase + eg * (24 - phase)) / 24 * (board.IsWhiteToMove ? 1 : -1);
     }
 
-    // https://www.chessprogramming.org/Negamax
-    // https://www.chessprogramming.org/Quiescence_Search
-    public int Search(Board board, Timer timer, int alpha, int beta, int depth, int ply)
+    // Quiescence search which means we're searching for a "quiet" position before return the evaluation
+    private int QSearch(Board board, int alpha, int beta)
     {
-        _nodes++;
+        // Debug
+        QNodes++;
+
+        // We're not forced to capture so also evaluate the current position which might be a great situation
+        int standPat = Evaluate(board);
+            
+        // Beta cutoff when there is an established better option for the other player
+        if (beta <= standPat)
+            return beta;
+
+        // Improve alpha
+        alpha = Math.Max(alpha, standPat);
         
-        ulong key = board.ZobristKey;
-        bool qsearch = depth <= 0;
-        bool notRoot = ply > 0;
-        int best = -30000;
+        // Only consider captures since we want to find a "quiescence" position asap
+        Move[] moves = board.GetLegalMoves(true);
 
-        // Check for repetition (this is much more important than material and 50 move rule draws)
-        if (notRoot && board.IsRepeatedPosition()) return 0;
-
-        TtEntry entry = _tt[key % TtEntriesCount];
-        
-        // TT cutoffs
-        if (notRoot && entry.Key == key && entry.Depth >= depth && (
-                entry.Bound == 3
-                || entry.Bound == 2 && entry.Score >= beta
-                || entry.Bound == 1 && entry.Score <= alpha
-            )) return entry.Score;
-
-        int eval = Evaluate(board);
-
-        // Quiescence search is in the same function as negamax to save tokens
-        if (qsearch)
+        // Loop the captures and check them
+        foreach (Move move in moves)
         {
-            best = eval;
-            if (best >= beta) return best;
-            alpha = Math.Max(alpha, best);
-        }
-
-        // Generate moves, only captures in qsearch
-        Move[] moves = board.GetLegalMoves(qsearch);
-        int[] scores = new int[moves.Length];
-
-        // Score moves
-        for (int i = 0; i < moves.Length; i++)
-        {
-            Move move = moves[i];
-            // TT move
-            if (move == entry.Move) scores[i] = 1000000;
-            // MVV-LVA
-            else if (move.IsCapture) scores[i] = 100 * (int)move.CapturePieceType - (int)move.MovePieceType;
-        }
-
-        Move bestMove = Move.NullMove;
-        int origAlpha = alpha;
-
-        // Search moves
-        for (int i = 0; i < moves.Length; i++)
-        {
-            if (timer.MillisecondsElapsedThisTurn >= timer.MillisecondsRemaining / 30) return 30000;
-
-            // Incrementally sort moves
-            for (int j = i + 1; j < moves.Length; j++)
-            {
-                if (scores[j] > scores[i])
-                    (scores[i], scores[j], moves[i], moves[j]) = (scores[j], scores[i], moves[j], moves[i]);
-            }
-
-            Move move = moves[i];
             board.MakeMove(move);
-            int score = -Search(board, timer, -beta, -alpha, depth - 1, ply + 1);
+            int score = -QSearch(board, -beta, -alpha);
+            board.UndoMove(move);
+            
+            // Beta cutoff when there is an established better option for the other player
+            if (beta <= score)
+                return beta;
+            
+            // Improve alpha
+            alpha = Math.Max(alpha, score);
+        }
+
+        return alpha;
+    }
+
+    public int NegaMax(Board board, int depth, int ply, int alpha, int beta)
+    {
+        // Debug keep track on nodes and qnodes searching
+        Nodes++;
+
+        // Keep track of the original alpha in order to determine the type of bounds cutoff
+        int alphaStart = alpha;
+
+        // Transposition table does not know about three fold draw so check this clause first
+        if (board.IsDraw()) return 0;
+
+        // Try to find the board position in the tt
+        ulong key = board.ZobristKey;
+        MyBot.TtEntry ttEntry = Tt[key % TtEntryCount];
+
+        // When we find the transposition check if we can use it to narrow our alpha beta bounds
+        if (ttEntry.Key == key && ttEntry.Depth >= depth)
+        {
+            // 1 = lower bound; 2 = exact; 3 = upper bound
+            if (ttEntry.Flag == 2) return ttEntry.Score;
+            if (ttEntry.Flag == 1) alpha = Math.Max(alpha, ttEntry.Score);
+            if (ttEntry.Flag == 3) beta = Math.Min(beta, ttEntry.Score);
+
+            // Beta cutoff when there is an established better branch that resulted in the alpha score
+            if (beta <= alpha) return ttEntry.Score;
+        }
+
+        // Go into Quiescence search at depth 0
+        if (depth <= 0) 
+            return QSearch(board, alpha, beta);
+        
+        int bestScore = -100000;
+
+        Move[] moves = board.GetLegalMoves();
+        Move bestMove = Move.NullMove;
+
+        // Score moves so alpha beta pruning will be more effective (more to prune if we check likely good moves first)
+        int[] movesScore = new int[moves.Length];
+        for (int i = 0; i < moves.Length; i++)
+        {
+            Move move = moves[i];
+            movesScore[i] =
+                // tt moves were stored for a reason so let's evaluate them first
+                move == ttEntry.Move ? 100000 :
+                // Capturing moves are often a good idea if you capture a piece more valuable than yours
+                move.IsCapture ? 1000 * (int)move.CapturePieceType - (int)move.MovePieceType :
+                // Pawn promotions are often best (who wouldn't like a new queen)
+                move.IsPromotion ? 100 : 0;
+        }
+
+        // Sort based on ascending so flip with reverse in the loop to sort them based on descending
+        Array.Sort(movesScore, moves);
+
+        foreach (Move move in moves.Reverse())
+        {
+            if (Timer.MillisecondsElapsedThisTurn > Timer.MillisecondsRemaining / 40) return 100000;
+
+            board.MakeMove(move);
+            int score = -NegaMax(board, depth - 1, ply + 1, -beta, -alpha);
             board.UndoMove(move);
 
-            // New best move
-            if (score > best)
+            if (score > bestScore)
             {
-                best = score;
+                if (ply == 0) BestMove = move;
                 bestMove = move;
-                if (ply == 0) _bestMoveRoot = move;
+                bestScore = score;
+                alpha = Math.Max(alpha, bestScore);
 
-                // Improve alpha
-                alpha = Math.Max(alpha, score);
-
-                // Fail-high
-                if (alpha >= beta) break;
+                // Beta cutoff when there is an established better branch that resulted in the alpha score
+                if (beta <= alpha) break;
             }
         }
 
-        // (Check/Stale)mate
-        if (!qsearch && moves.Length == 0) return board.IsInCheck() ? -30000 + ply : 0;
+        // Decide the current search bounds so we're able to properly check if we're allowed to cutoff later
+        int flag = bestScore <= alphaStart ? 3 : bestScore >= beta ? 1 : 2;
 
-        // Did we fail high/low or get an exact score?
-        int bound = best >= beta ? 2 : best > origAlpha ? 3 : 1;
+        // Store the position and it's eval to the transposition table for fast lookup when same position is found twice
+        Tt[key % TtEntryCount] = new MyBot.TtEntry(key, bestScore, depth, flag, bestMove);
 
-        // Push to TT
-        _tt[key % TtEntriesCount] = new TtEntry(key, depth, best, bound, bestMove);
-
-        return best;
+        return bestScore;
     }
 
     public Move Think(Board board, Timer timer)
     {
-        _nodes = 0;
-        
-        _bestMoveRoot = Move.NullMove;
-        // https://www.chessprogramming.org/Iterative_Deepening
-        for (int depth = 1; depth <= 50; depth++)
-        {
-            int score = Search(board, timer, -30000, 30000, depth, 0);
+        Nodes = 0;
+        QNodes = 0;
 
-            // UCI Debug Logging
-            Console.ForegroundColor = ConsoleColor.DarkYellow;
-            Console.WriteLine("info depth {0,2} score {1,6} nodes {2,9} nps {3,8} time {4,5} pv {5}{6}",
-                depth,
-                score,
-                _nodes,
-                1000 * _nodes / (timer.MillisecondsElapsedThisTurn + 1),
-                timer.MillisecondsElapsedThisTurn,
-                _bestMoveRoot.StartSquare.Name,
-                _bestMoveRoot.TargetSquare.Name
-            );
+        // Assign to be globally used
+        Timer = timer;
+
+        // Reset to prevent lingering previous moves
+        BestMove = Move.NullMove;
+
+        // Iterative deepening
+        for (int depth = 1; depth < 50; depth++)
+        {
+            int score = NegaMax(board, depth, 0, -100000, 100000);
             
-            // Out of time
-            if (timer.MillisecondsElapsedThisTurn >= timer.MillisecondsRemaining / 30) break;
+            if (Timer.MillisecondsElapsedThisTurn > Timer.MillisecondsRemaining / 40) break;
         }
 
-        return _bestMoveRoot.IsNull ? board.GetLegalMoves()[0] : _bestMoveRoot;
+        return BestMove.IsNull ? board.GetLegalMoves()[0] : BestMove;
     }
 }

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using ChessChallenge.API;
+using Timer = ChessChallenge.API.Timer;
 
 namespace Chess_Challenge_Tests;
 
@@ -9,12 +10,13 @@ public class MyBotTest
     private Board _testBoard;
     private Stopwatch _stopwatch;
 
+    
     [SetUp]
     public void Setup()
     {
         _myBot = new MyBot
         {
-            InTest = true
+            Timer = new Timer(60000, 60000, 0)
         };
         _stopwatch = Stopwatch.StartNew();
     }
@@ -81,6 +83,49 @@ public class MyBotTest
 
         LogAll(score);
     }
+    
+    [Test]
+    public void TestPuzzle4()
+    {
+        // Win a Rook and a Pawn for a bishop
+        const string fen = "rn3r1k/pp3p1p/4bN2/q3Q3/1b1p3P/5N2/PPP2PP1/2KR1B1R b - - 2 14";
+        _testBoard = Board.CreateBoardFromFEN(fen);
+
+        _stopwatch.Restart();
+
+        int score = _myBot.NegaMax(_testBoard, 7, 0, -30000, 30000);
+
+        _stopwatch.Stop();
+
+        Assert.That(_myBot.BestMove.MovePieceType, Is.EqualTo(PieceType.Queen));
+        Assert.That(_myBot.BestMove.StartSquare.Name, Is.EqualTo("a5"));
+        Assert.That(_myBot.BestMove.TargetSquare.Name, Is.EqualTo("a2"));
+
+        LogAll(score);
+    }
+    
+    [Test]
+    public void TestPuzzle5()
+    {
+        // Put pressure with moving a small piece (pawn) and win a rook for a knight
+        const string fen = "8/5kp1/1N3p2/1p4p1/1P6/P5P1/R2n1PKP/3r4 b - - 14 39";
+        _testBoard = Board.CreateBoardFromFEN(fen);
+
+        _stopwatch.Restart();
+
+        int score = _myBot.NegaMax(_testBoard, 8, 0, -30000, 30000);
+
+        _stopwatch.Stop();
+
+        Assert.That(_myBot.BestMove.MovePieceType, Is.EqualTo(PieceType.Pawn));
+        Assert.That(_myBot.BestMove.StartSquare.Name, Is.EqualTo("g5"));
+        Assert.That(_myBot.BestMove.TargetSquare.Name, Is.EqualTo("g4"));
+
+        LogAll(score);
+    }
+
+    
+   
 
     #endregion
 
@@ -181,7 +226,7 @@ public class MyBotTest
             score,
             _stopwatch.ElapsedMilliseconds,
             _myBot.Nodes,
-            1000 * _myBot.Nodes / (_stopwatch.ElapsedMilliseconds + 1),
+            Math.Abs(1000 * _myBot.Nodes / (_stopwatch.ElapsedMilliseconds + 1)),
             _myBot.BestMove.MovePieceType.ToString(),
             _myBot.BestMove.StartSquare.Name,
             _myBot.BestMove.TargetSquare.Name);
@@ -189,11 +234,9 @@ public class MyBotTest
 
     #endregion
 
-
     #region Hardware
 
     // https://github.com/SebLague/Chess-Challenge/issues/381
-    /*
     [Test]
     public void Takes5SecondOnTournamentTest()
     {
@@ -221,7 +264,8 @@ public class MyBotTest
             _testBoard.UndoMove(m);
         }
     }
-    */
+
 
     #endregion
+    
 }

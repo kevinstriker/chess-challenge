@@ -36,9 +36,6 @@
     <Compile Update="src\Evil Bot\StockFishBot.cs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Compile>
-    <Compile Update="src\Evil Bot\MyBotOld.cs">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Compile>
   </ItemGroup>
 
   <ItemGroup>
@@ -57,7 +54,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="resources\Stockfish\" />
     <Folder Include="src\Framework\Chess\" />
   </ItemGroup>
 
