@@ -225,7 +225,7 @@ public class MyBot : IChessBot
         QNodes = 0;
 
         // Assign to be globally used
-        this.Timer = timer;
+        Timer = timer;
 
         // Reset to prevent lingering previous moves
         BestMove = Move.NullMove;
@@ -233,10 +233,15 @@ public class MyBot : IChessBot
         // Iterative deepening
         for (int depth = 1; depth < 50; depth++)
         {
-            NegaMax(board, depth, 0, -100000, 100000);
-
-            if (this.Timer.MillisecondsElapsedThisTurn > this.Timer.MillisecondsRemaining / 40) break;
+            int score = NegaMax(board, depth, 0, -100000, 100000);
+            
+            DebugHelper.LogDepth(timer, depth, score, this);
+            
+            if (Timer.MillisecondsElapsedThisTurn > Timer.MillisecondsRemaining / 40) break;
         }
+        
+        Console.WriteLine();
+
         
         return BestMove.IsNull ? board.GetLegalMoves()[0] : BestMove;
     }
