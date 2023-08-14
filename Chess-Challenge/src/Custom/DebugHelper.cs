@@ -4,7 +4,7 @@ using ChessChallenge.API;
 
 public static class DebugHelper
 {
-    public static void LogDepth(Timer timer, int depth, int score, MyBot myBot)
+    public static void LogDepth(String botName, Timer timer, int depth, int score, int nodes, int qnodes, Move bestMove)
     {
         // Color codes
         string textColor = "\x1b[37m";
@@ -18,9 +18,12 @@ public static class DebugHelper
         string tealColor = "\x1b[38;5;51m";
         string resetFormat = "\x1b[0m";
 
+        
         // Depth level
-        string depthString = $"{boldText}{orangeColor}depth {depth} ply{resetFormat}";
-        depthString += string.Concat(Enumerable.Repeat(" ", 40 - depthString.Length));
+
+        botName = botName.Replace("Bot", "");
+        string depthString = $"{boldText}{orangeColor}{botName} - {depth} ply{resetFormat}";
+        depthString += string.Concat(Enumerable.Repeat(" ", 45 - depthString.Length));
         
         // Time
         string timeString =
@@ -33,25 +36,55 @@ public static class DebugHelper
         bestEvalString += string.Concat(Enumerable.Repeat(" ", 38 - bestEvalString.Length));
 
         // Nodes
-        string nodesString = $"{textColor}nodes{purpleColor} {greenColor}{myBot.Nodes}{textColor}";
+        string nodesString = $"{textColor}nodes{purpleColor} {greenColor}{nodes}{textColor}";
         nodesString += string.Concat(Enumerable.Repeat(" ", 40 - nodesString.Length));
 
         // Q Nodes
-        string qnodesString = $"{textColor}qnodes{purpleColor} {myBot.QNodes}{textColor}";
+        string qnodesString = $"{textColor}qnodes{purpleColor} {qnodes}{textColor}";
         qnodesString += string.Concat(Enumerable.Repeat(" ", 40 - qnodesString.Length));
 
         // Nodes per second
-        long nps = 1000 * (myBot.Nodes + myBot.QNodes) / (timer.MillisecondsElapsedThisTurn + 1);
+        long nps = 1000 * (nodes + qnodes) / (timer.MillisecondsElapsedThisTurn + 1);
         string npsString = $"{textColor}nps{blueColor} {nps}{textColor}";
         npsString += string.Concat(Enumerable.Repeat(" ", 40 - npsString.Length));
 
         // Best move String 
-        string bestMoveString = $"{textColor}pv{tealColor} {myBot.BestMove.MovePieceType} - {myBot.BestMove.StartSquare.Name}{myBot.BestMove.TargetSquare.Name}";
+        string bestMoveString = $"{textColor}pv{tealColor} {bestMove.MovePieceType} - {bestMove.StartSquare.Name}{bestMove.TargetSquare.Name}";
 
         Console.WriteLine(string.Join(" ",
             new string[]
             {
                 depthString, timeString, bestEvalString, nodesString, qnodesString, npsString, bestMoveString
             }));
+    }
+    
+    // Current Bot version
+    public static void LogDepth(Timer timer, int depth, int score, MyBot bot)
+    {
+        LogDepth(bot.GetType().ToString(), timer, depth, score, bot.Nodes, bot.QNodes, bot.BestMove);
+    }
+
+    // Previous bot version (but not a release version)
+    public static void LogDepth(Timer timer, int depth, int score, MinusOneBot bot)
+    {
+        LogDepth(bot.GetType().ToString(), timer, depth, score, bot.Nodes, bot.QNodes, bot.BestMove);
+    }
+    
+    // The V1 version
+    public static void LogDepth(Timer timer, int depth, int score, V1 bot)
+    {
+        LogDepth(bot.GetType().ToString(), timer, depth, score, bot.Nodes, bot.QNodes, bot.BestMove);
+    }    
+    
+    // The Magnesium version
+    public static void LogDepth(Timer timer, int depth, int score, MagnesiumBot bot)
+    {
+        LogDepth(bot.GetType().ToString(), timer, depth, score, bot.Nodes, bot.QNodes, bot.BestMove);
+    }
+    
+    // The V1P1 version (optimised tokens)
+    public static void LogDepth(Timer timer, int depth, int score, V1P1 bot)
+    {
+        LogDepth(bot.GetType().ToString(), timer, depth, score, bot.Nodes, bot.QNodes, bot.BestMove);
     }
 }

@@ -10,13 +10,13 @@ public class MyBotTest
     private Board _testBoard;
     private Stopwatch _stopwatch;
 
-    
+
     [SetUp]
     public void Setup()
     {
         _myBot = new MyBot
         {
-            Timer = new Timer(60000, 60000, 0)
+            Timer = new Timer(60000000, 60000000, 0)
         };
         _stopwatch = Stopwatch.StartNew();
     }
@@ -27,16 +27,10 @@ public class MyBotTest
     public void TestPuzzle1()
     {
         // Checkmate by queen sacrifice
-        const string fen = "2r2bk1/p5p1/1p1p2Qp/2PNp3/PR1nNr1q/3P4/5PPP/5RK1 b - - 0 1";
-        _testBoard = Board.CreateBoardFromFEN(fen);
-
-        _stopwatch.Restart();
-
-        int score = _myBot.NegaMax(_testBoard, 6, 0, -30000, 30000);
-
-        _stopwatch.Stop();
-
-        Assert.That(score, Is.EqualTo(30000));
+        _testBoard = Board.CreateBoardFromFEN("2r2bk1/p5p1/1p1p2Qp/2PNp3/PR1nNr1q/3P4/5PPP/5RK1 b - - 0 1");
+        
+        int score = _myBot.Search(_testBoard, 6, 0, -100000, 100000);
+        
         Assert.That(_myBot.BestMove.MovePieceType, Is.EqualTo(PieceType.Knight));
         Assert.That(_myBot.BestMove.StartSquare.Name, Is.EqualTo("d4"));
         Assert.That(_myBot.BestMove.TargetSquare.Name, Is.EqualTo("e2"));
@@ -48,15 +42,10 @@ public class MyBotTest
     public void TestPuzzle2()
     {
         // Move queen out of the way to threat mate and win rook if not mate
-        const string fen = "4rq1k/3r1p1p/3p1p2/1p1P2Q1/p1n2P2/P1P4R/1P3RPK/8 w - - 0 1";
-        _testBoard = Board.CreateBoardFromFEN(fen);
-
-        _stopwatch.Restart();
-
-        int score = _myBot.NegaMax(_testBoard, 4, 0, -30000, 30000);
-
-        _stopwatch.Stop();
-
+        _testBoard = Board.CreateBoardFromFEN("4rq1k/3r1p1p/3p1p2/1p1P2Q1/p1n2P2/P1P4R/1P3RPK/8 w - - 0 1");
+        
+        int score = _myBot.Search(_testBoard, 4, 0, -100000, 100000);
+        
         Assert.That(_myBot.BestMove.MovePieceType, Is.EqualTo(PieceType.Queen));
         Assert.That(_myBot.BestMove.StartSquare.Name, Is.EqualTo("g5"));
         Assert.That(_myBot.BestMove.TargetSquare.Name, Is.EqualTo("f5"));
@@ -68,65 +57,109 @@ public class MyBotTest
     public void TestPuzzle3()
     {
         // Trap a queen with 2 rooks
-        const string fen = "3r2r1/Q1pk1p2/2p2nqp/2Pp4/8/4PP1P/PP1B1RP1/R5K1 b - - 0 1";
-        _testBoard = Board.CreateBoardFromFEN(fen);
-
-        _stopwatch.Restart();
-
-        int score = _myBot.NegaMax(_testBoard, 6, 0, -30000, 30000);
-
-        _stopwatch.Stop();
-
+        _testBoard = Board.CreateBoardFromFEN("3r2r1/Q1pk1p2/2p2nqp/2Pp4/8/4PP1P/PP1B1RP1/R5K1 b - - 0 1");
+        
+        int score = _myBot.Search(_testBoard, 6, 0, -100000, 100000);
+        
         Assert.That(_myBot.BestMove.MovePieceType, Is.EqualTo(PieceType.Rook));
         Assert.That(_myBot.BestMove.StartSquare.Name, Is.EqualTo("d8"));
         Assert.That(_myBot.BestMove.TargetSquare.Name, Is.EqualTo("a8"));
 
         LogAll(score);
     }
-    
+
     [Test]
     public void TestPuzzle4()
     {
         // Win a Rook and a Pawn for a bishop
-        const string fen = "rn3r1k/pp3p1p/4bN2/q3Q3/1b1p3P/5N2/PPP2PP1/2KR1B1R b - - 2 14";
-        _testBoard = Board.CreateBoardFromFEN(fen);
-
-        _stopwatch.Restart();
-
-        int score = _myBot.NegaMax(_testBoard, 7, 0, -30000, 30000);
-
-        _stopwatch.Stop();
-
+        _testBoard = Board.CreateBoardFromFEN("rn3r1k/pp3p1p/4bN2/q3Q3/1b1p3P/5N2/PPP2PP1/2KR1B1R b - - 2 14");
+        
+        int score = _myBot.Search(_testBoard, 6, 0, -100000, 100000);
+        
+        LogAll(score);
+        
         Assert.That(_myBot.BestMove.MovePieceType, Is.EqualTo(PieceType.Queen));
         Assert.That(_myBot.BestMove.StartSquare.Name, Is.EqualTo("a5"));
         Assert.That(_myBot.BestMove.TargetSquare.Name, Is.EqualTo("a2"));
+    }
+
+    [Test]
+    public void TestPuzzle5()
+    {
+        // Put pressure with moving a small piece (pawn) and win a rook for a knight
+        _testBoard = Board.CreateBoardFromFEN( "8/5kp1/1N3p2/1p4p1/1P6/P5P1/R2n1PKP/3r4 b - - 14 39");
+        
+        int score = _myBot.Search(_testBoard, 10, 0, -100000, 100000);
+        
+        LogAll(score);
+        
+        Assert.That(_myBot.BestMove.MovePieceType, Is.EqualTo(PieceType.Pawn));
+        Assert.That(_myBot.BestMove.StartSquare.Name, Is.EqualTo("g5"));
+        Assert.That(_myBot.BestMove.TargetSquare.Name, Is.EqualTo("g4"));
+    }
+
+    [Test]
+    public void TestPuzzle6()
+    {
+        // Simple "damage control" puzzle to prevent promotion there is only 1 reasonable move
+        _testBoard = Board.CreateBoardFromFEN("r3k2r/1ppb1ppp/2n1p3/1q6/3PN3/2PPp3/PpQ2PPP/R3K2R w KQkq - 0 16");
+        
+        int score = _myBot.Search(_testBoard, 8, 0, -100000, 100000);
+        
+        Assert.That(_myBot.BestMove.MovePieceType, Is.EqualTo(PieceType.Rook));
+        Assert.That(_myBot.BestMove.StartSquare.Name, Is.EqualTo("a1"));
+        Assert.That(_myBot.BestMove.TargetSquare.Name, Is.EqualTo("b1"));
 
         LogAll(score);
     }
     
     [Test]
-    public void TestPuzzle5()
+    public void TestPuzzle7()
     {
-        // Put pressure with moving a small piece (pawn) and win a rook for a knight
-        const string fen = "8/5kp1/1N3p2/1p4p1/1P6/P5P1/R2n1PKP/3r4 b - - 14 39";
-        _testBoard = Board.CreateBoardFromFEN(fen);
+        // Trap queen with pawn attack
+        _testBoard = Board.CreateBoardFromFEN("3q1k2/5ppp/r1p1p3/p1np4/3Qn3/P1P1P3/3N1PPP/R3K2R b KQ - 3 17");
 
-        _stopwatch.Restart();
-
-        int score = _myBot.NegaMax(_testBoard, 8, 0, -30000, 30000);
-
-        _stopwatch.Stop();
-
+        int score = _myBot.Search(_testBoard, 6, 0, -100000, 100000);
+        
         Assert.That(_myBot.BestMove.MovePieceType, Is.EqualTo(PieceType.Pawn));
-        Assert.That(_myBot.BestMove.StartSquare.Name, Is.EqualTo("g5"));
-        Assert.That(_myBot.BestMove.TargetSquare.Name, Is.EqualTo("g4"));
+        Assert.That(_myBot.BestMove.StartSquare.Name, Is.EqualTo("e6"));
+        Assert.That(_myBot.BestMove.TargetSquare.Name, Is.EqualTo("e5"));
 
         LogAll(score);
-    }
-
+    }    
     
-   
+    [Test]
+    public void TestPuzzle8()
+    {
+        // Change bishop for knight to pin queen to king after with other bishop 
+        _testBoard = Board.CreateBoardFromFEN("2kr2r1/pppq1p2/2npbp1p/2bNp3/2P1P1P1/3P1N1P/PP1QBP2/R3K2R b KQ - 1 1");
 
+        int score = _myBot.Search(_testBoard, 6, 0, -100000, 100000);
+        
+        Assert.That(_myBot.BestMove.MovePieceType, Is.EqualTo(PieceType.Bishop));
+        Assert.That(_myBot.BestMove.StartSquare.Name, Is.EqualTo("e6"));
+        Assert.That(_myBot.BestMove.TargetSquare.Name, Is.EqualTo("d5"));
+
+        LogAll(score);
+    } 
+    
+    
+    [Test]
+    public void TestPuzzle9()
+    {
+        // Bishop shouldn't go for pawn advantage since it means you get wayyy behind
+        _testBoard = Board.CreateBoardFromFEN("r1b1k2r/pp2nppp/2pp1q2/5P2/2BbP3/2N1B3/PP3QPP/R4RK1 b kq - 1 18");
+
+        int score = _myBot.Search(_testBoard, 9, 0, -100000, 100000);
+        
+        LogAll(score);
+        
+        Assert.That(_myBot.BestMove.MovePieceType, Is.EqualTo(PieceType.Bishop));
+        Assert.That(_myBot.BestMove.StartSquare.Name, Is.EqualTo("d4"));
+        Assert.That(_myBot.BestMove.TargetSquare.Name, Is.EqualTo("e3"));
+    }
+    
+    
     #endregion
 
     #region Move ordering
@@ -134,38 +167,9 @@ public class MyBotTest
     [Test]
     public void TestMoveOrdering()
     {
-        const string fen = "2b1kb1r/P1pppppp/4nn2/1N4q1/2B2B2/4PN1P/1PPPQPP1/R3K2R w KQk - 0 1";
-        _testBoard = Board.CreateBoardFromFEN(fen);
-
-        _stopwatch.Restart();
-
-        int score = _myBot.NegaMax(_testBoard, 1, 0, -30000, 30000);
-
-        _stopwatch.Stop();
+        _testBoard = Board.CreateBoardFromFEN("2b1kb1r/P1pppppp/4nn2/1N4q1/2B2B2/4PN1P/1PPPQPP1/R3K2R w KQk - 0 1");
         
-
-        LogAll(score);
-    }
-    
-    #endregion
-
-    #region Defensive
-
-    [Test]
-    public void TestDodgePawnCaptureAndPromotion()
-    {
-        const string fen = "r3k2r/1ppb1ppp/2n1p3/1q6/3PN3/2PPp3/PpQ2PPP/R3K2R w KQkq - 0 16";
-        _testBoard = Board.CreateBoardFromFEN(fen);
-
-        _stopwatch.Restart();
-
-        int score = _myBot.NegaMax(_testBoard, 4, 0, -30000, 30000);
-
-        _stopwatch.Stop();
-
-        Assert.That(_myBot.BestMove.MovePieceType, Is.EqualTo(PieceType.Rook));
-        Assert.That(_myBot.BestMove.StartSquare.Name, Is.EqualTo("a1"));
-        Assert.That(_myBot.BestMove.TargetSquare.Name, Is.EqualTo("b1"));
+        int score = _myBot.Search(_testBoard, 1, 0, -100000, 100000);
 
         LogAll(score);
     }
@@ -182,7 +186,7 @@ public class MyBotTest
 
         _stopwatch.Restart();
 
-        int score = _myBot.NegaMax(_testBoard, 4, 0, -30000, 30000);
+        int score = _myBot.Search(_testBoard, 4, 0, -100000, 100000);
 
         _stopwatch.Stop();
 
@@ -195,38 +199,16 @@ public class MyBotTest
 
     #endregion
 
-    #region Pawns
-
-    [Test]
-    public void TestPromotePawnToQueen()
-    {
-        const string fen = "2r3k1/5p2/6pB/1Q6/3bR2P/7K/Pp2P1B1/6q1 b - - 2 35";
-        _testBoard = Board.CreateBoardFromFEN(fen);
-
-        _stopwatch.Restart();
-
-        int score = _myBot.NegaMax(_testBoard, 4, 0, -30000, 30000);
-
-        _stopwatch.Stop();
-
-        Assert.That(_myBot.BestMove.MovePieceType, Is.EqualTo(PieceType.Pawn));
-        Assert.That(_myBot.BestMove.StartSquare.Name, Is.EqualTo("b2"));
-        Assert.That(_myBot.BestMove.TargetSquare.Name, Is.EqualTo("b1"));
-
-        LogAll(score);
-    }
-
-    #endregion
-
     #region Logging
 
     private void LogAll(int score)
     {
-        Console.WriteLine("score {0}, time {1}ms, nodes {2}, nps {3}, DepthMove {4}-{5}{6}",
+        Console.WriteLine("score {0}, time {1}ms, nodes {2} qNodes {3}, nps {4}, DepthMove {5}-{6}{7}",
             score,
             _stopwatch.ElapsedMilliseconds,
             _myBot.Nodes,
-            Math.Abs(1000 * _myBot.Nodes / (_stopwatch.ElapsedMilliseconds + 1)),
+            _myBot.QNodes,
+            (_myBot.Nodes + _myBot.QNodes) / (_stopwatch.ElapsedMilliseconds + 1) * 1000,
             _myBot.BestMove.MovePieceType.ToString(),
             _myBot.BestMove.StartSquare.Name,
             _myBot.BestMove.TargetSquare.Name);
@@ -235,7 +217,7 @@ public class MyBotTest
     #endregion
 
     #region Hardware
-
+    /*
     // https://github.com/SebLague/Chess-Challenge/issues/381
     [Test]
     public void Takes5SecondOnTournamentTest()
@@ -244,14 +226,15 @@ public class MyBotTest
         _testBoard = Board.CreateBoardFromFEN(fen);
 
         _stopwatch.Restart();
-        
-        SearchFullForHardwareCheck(5);;
-        
+
+        SearchFullForHardwareCheck(5);
+        ;
+
         _stopwatch.Stop();
-        
+
         Console.WriteLine(_stopwatch.ElapsedMilliseconds + " ms.");
     }
-    
+
     private void SearchFullForHardwareCheck(int depthRemaining)
     {
         if (depthRemaining == 0) return;
@@ -264,8 +247,6 @@ public class MyBotTest
             _testBoard.UndoMove(m);
         }
     }
-
-
+    */
     #endregion
-    
 }

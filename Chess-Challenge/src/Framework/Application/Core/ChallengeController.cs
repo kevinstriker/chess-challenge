@@ -25,20 +25,18 @@ namespace ChessChallenge.Application
             MyBot,
             EvilBot,
             // Custom: my previous version of the bot
+            V1,
             MinusOneBot, 
             // Custom: other bots
-            NegaMaxBot, // Tier 1 bot
-            JacquesBot, // Tier 2 bot
-            TyrantBot,
+            NegaMaxBot, // T1
+            JacquesBot, // T2
+            MagnesiumBot, // T2.1
             LiteBlueBot1,
             LiteBlueBot2,
             LiteBlueBot3,
             LiteBlueBot4,
             LiteBlueBot5,
-            DavidStuffBot,
-            MonteCarlo,
-            AugsBot,
-            SelenautBot,
+            LiteBlueBot6,
             StockFishBot
         }
 
@@ -50,20 +48,18 @@ namespace ChessChallenge.Application
                 PlayerType.MyBot => new MyBot(),
                 PlayerType.EvilBot => new EvilBot(),
                 // Custom: my previous version
+                PlayerType.V1 => new V1(),
                 PlayerType.MinusOneBot => new MinusOneBot(),
                 // Custom: other bots
                 PlayerType.NegaMaxBot => new NegaMaxBot(),
                 PlayerType.JacquesBot => new JacquesBot(),
-                PlayerType.TyrantBot => new TyrantBot(),
+                PlayerType.MagnesiumBot => new MagnesiumBot(),
                 PlayerType.LiteBlueBot1 => new LiteBlueBot1(),
                 PlayerType.LiteBlueBot2 => new LiteBlueBot2(),
                 PlayerType.LiteBlueBot3 => new LiteBlueBot3(),
                 PlayerType.LiteBlueBot4 => new LiteBlueBot4(),
                 PlayerType.LiteBlueBot5 => new LiteBlueBot5(),
-                PlayerType.DavidStuffBot => new DavidStuffBot(),
-                PlayerType.MonteCarlo => new MonteCarlo(),
-                PlayerType.AugsBot => new AugsBot(),
-                PlayerType.SelenautBot => new SelenautBot(),
+                PlayerType.LiteBlueBot6 => new LiteBlueBot6(),
                 PlayerType.StockFishBot => new StockFishBot(),
                 _ => null
             };
@@ -255,19 +251,17 @@ namespace ChessChallenge.Application
             {
                 PlayerType.MyBot => new ChessPlayer(new MyBot(), type, GameDurationMilliseconds),
                 PlayerType.EvilBot => new ChessPlayer(new EvilBot(), type, GameDurationMilliseconds),
+                PlayerType.V1 => new ChessPlayer(new V1(), type, GameDurationMilliseconds),
                 PlayerType.MinusOneBot => new ChessPlayer(new MinusOneBot(), type, GameDurationMilliseconds),
                 PlayerType.NegaMaxBot => new ChessPlayer(new NegaMaxBot(), type, GameDurationMilliseconds),
                 PlayerType.JacquesBot => new ChessPlayer(new JacquesBot(), type, GameDurationMilliseconds),
-                PlayerType.TyrantBot => new ChessPlayer(new TyrantBot(), type, GameDurationMilliseconds),
+                PlayerType.MagnesiumBot => new ChessPlayer(new MagnesiumBot(), type, GameDurationMilliseconds),
                 PlayerType.LiteBlueBot1 => new ChessPlayer(new LiteBlueBot1(), type, GameDurationMilliseconds),
                 PlayerType.LiteBlueBot2 => new ChessPlayer(new LiteBlueBot2(), type, GameDurationMilliseconds),
                 PlayerType.LiteBlueBot3 => new ChessPlayer(new LiteBlueBot3(), type, GameDurationMilliseconds),
                 PlayerType.LiteBlueBot4 => new ChessPlayer(new LiteBlueBot4(), type, GameDurationMilliseconds),
                 PlayerType.LiteBlueBot5 => new ChessPlayer(new LiteBlueBot5(), type, GameDurationMilliseconds),
-                PlayerType.DavidStuffBot => new ChessPlayer(new DavidStuffBot(), type, GameDurationMilliseconds),
-                PlayerType.MonteCarlo => new ChessPlayer(new MonteCarlo(), type, GameDurationMilliseconds),
-                PlayerType.AugsBot => new ChessPlayer(new AugsBot(), type, GameDurationMilliseconds),
-                PlayerType.SelenautBot => new ChessPlayer(new SelenautBot(), type, GameDurationMilliseconds),
+                PlayerType.LiteBlueBot6 => new ChessPlayer(new LiteBlueBot6(), type, GameDurationMilliseconds),
                 PlayerType.StockFishBot => new ChessPlayer(new StockFishBot(), type, GameDurationMilliseconds),
                 _ => new ChessPlayer(new HumanPlayer(boardUI), type)
             };

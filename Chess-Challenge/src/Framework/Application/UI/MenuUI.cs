@@ -2,7 +2,6 @@
 using System.Numerics;
 using System;
 using System.IO;
-using ChessChallenge.Example;
 
 namespace ChessChallenge.Application
 {
@@ -26,33 +25,19 @@ namespace ChessChallenge.Application
                     : ChallengeController.PlayerType.Human;
                 controller.StartNewGame(whiteType, blackType);
             }
-            
-            if (NextButtonInRow("MyBot vs NegaMax", ref buttonPos, spacing, buttonSize))
-            {
-                controller.StartNewBotMatch(ChallengeController.PlayerType.MyBot,
-                    ChallengeController.PlayerType.NegaMaxBot);
-            }
-            
-                        
-            if (NextButtonInRow("MyBot vs SF", ref buttonPos, spacing, buttonSize))
-            {
-                controller.StartNewBotMatch(ChallengeController.PlayerType.MyBot,
-                    ChallengeController.PlayerType.StockFishBot);
-            }   
 
-            if (NextButtonInRow("MyBot vs MinusOne", ref buttonPos, spacing, buttonSize))
+            if (NextButtonInRow("MyBot vs V1", ref buttonPos, spacing, buttonSize))
             {
                 controller.StartNewBotMatch(ChallengeController.PlayerType.MyBot,
-                    ChallengeController.PlayerType.MinusOneBot);
-            }
+                    ChallengeController.PlayerType.V1);
+            }   
             
-            if (NextButtonInRow("MyBot vs LBB4", ref buttonPos, spacing, buttonSize))
+            if (NextButtonInRow("MyBot vs LBB5", ref buttonPos, spacing, buttonSize))
             {
                 controller.StartNewBotMatch(ChallengeController.PlayerType.MyBot,
-                    ChallengeController.PlayerType.LiteBlueBot4);
+                    ChallengeController.PlayerType.LiteBlueBot5);
             }
-            
-            
+
             // Page buttons
             buttonPos.Y += breakSpacing;
 

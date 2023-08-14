@@ -1,19 +1,19 @@
-# MyBot vs NegaMax - Tier 1
-/Users/kevinvermaat/Documents/other/CuteChess1.3.0/CuteChess/build/cutechess-cli \
--engine name="MyBot" cmd="/Users/kevinvermaat/Documents/other/chess-challenge-kevin/Chess-Challenge/bin/Release/net6.0/Chess-Challenge" arg="uci" arg="MyBot" \
--engine name="NegaMaxBot" cmd="/Users/kevinvermaat/Documents/other/chess-challenge-kevin/Chess-Challenge/bin/Release/net6.0/Chess-Challenge" arg="uci" arg="NegaMaxBot" \
--each proto=uci tc=60+0 restart=on \
--sprt elo0=0 elo1=10 alpha=0.05 beta=0.05 \
--concurrency 10 -maxmoves 200 -rounds 20 \
--ratinginterval 20 \
--pgnout sprt.pgn
-
-# MyBot vs JW Example - Tier 2
+# MyBot vs T2
 /Users/kevinvermaat/Documents/other/CuteChess1.3.0/CuteChess/build/cutechess-cli \
 -engine name="MyBot" cmd="/Users/kevinvermaat/Documents/other/chess-challenge-kevin/Chess-Challenge/bin/Release/net6.0/Chess-Challenge" arg="uci" arg="MyBot" \
 -engine name="JacquesBot" cmd="/Users/kevinvermaat/Documents/other/chess-challenge-kevin/Chess-Challenge/bin/Release/net6.0/Chess-Challenge" arg="uci" arg="JacquesBot" \
 -each proto=uci tc=60+0 restart=on \
--concurrency 5 -maxmoves 200 -rounds 5 \
+-concurrency 5 -maxmoves 200 -rounds 50 \
+-openings file=/Users/kevinvermaat/Documents/other/chess-challenge-kevin/Chess-Challenge/resources/Custom/UHO_XXL_+0.80_+1.09.pgn format=pgn order=random plies=8 \
+-pgnout sprt.pgn
+
+# MyBot vs V1
+/Users/kevinvermaat/Documents/other/CuteChess1.3.0/CuteChess/build/cutechess-cli \
+-engine name="MyBot" cmd="/Users/kevinvermaat/Documents/other/chess-challenge-kevin/Chess-Challenge/bin/Release/net6.0/Chess-Challenge" arg="uci" arg="MyBot" \
+-engine name="V1" cmd="/Users/kevinvermaat/Documents/other/chess-challenge-kevin/Chess-Challenge/bin/Release/net6.0/Chess-Challenge" arg="uci" arg="V1" \
+-each proto=uci tc=60+0 restart=on \
+-concurrency 5 -maxmoves 200 -rounds 100 \
+-openings file=/Users/kevinvermaat/Documents/other/chess-challenge-kevin/Chess-Challenge/resources/Custom/UHO_XXL_+0.80_+1.09.pgn format=pgn order=random plies=8 \
 -pgnout sprt.pgn
 
 # MyBot vs Minus One - My last version
@@ -21,15 +21,15 @@
 -engine name="MyBot" cmd="/Users/kevinvermaat/Documents/other/chess-challenge-kevin/Chess-Challenge/bin/Release/net6.0/Chess-Challenge" arg="uci" arg="MyBot" \
 -engine name="MinusOneBot" cmd="/Users/kevinvermaat/Documents/other/chess-challenge-kevin/Chess-Challenge/bin/Release/net6.0/Chess-Challenge" arg="uci" arg="MinusOneBot" \
 -each proto=uci tc=60+0 restart=on \
--concurrency 10 -maxmoves 200 -rounds 50 \
+-concurrency 5 -maxmoves 200 -rounds 50 \
+-openings file=/Users/kevinvermaat/Documents/other/chess-challenge-kevin/Chess-Challenge/resources/Custom/UHO_XXL_+0.80_+1.09.pgn format=pgn order=random plies=8 \
 -pgnout sprt.pgn
 
-# MyBot vs Stockfish 
+# V1 vs T2  
 /Users/kevinvermaat/Documents/other/CuteChess1.3.0/CuteChess/build/cutechess-cli \
--engine name="MyBot" cmd="/Users/kevinvermaat/Documents/other/chess-challenge-kevin/Chess-Challenge/bin/Release/net6.0/Chess-Challenge" arg="uci" arg="MyBot" \
--engine name="StockFishBot" cmd="/Users/kevinvermaat/Documents/other/chess-challenge-kevin/Chess-Challenge/bin/Release/net6.0/Chess-Challenge" arg="uci" arg="StockFishBot" \
+-engine name="V1" cmd="/Users/kevinvermaat/Documents/other/chess-challenge-kevin/Chess-Challenge/bin/Release/net6.0/Chess-Challenge" arg="uci" arg="V1" \
+-engine name="JacquesBot" cmd="/Users/kevinvermaat/Documents/other/chess-challenge-kevin/Chess-Challenge/bin/Release/net6.0/Chess-Challenge" arg="uci" arg="JacquesBot" \
 -each proto=uci tc=60+0 restart=on \
--sprt elo0=0 elo1=10 alpha=0.05 beta=0.05 \
--concurrency 10 -maxmoves 200 -rounds 10 \
--ratinginterval 20 \
+-concurrency 5 -maxmoves 200 -rounds 50 \
+-openings file=/Users/kevinvermaat/Documents/other/chess-challenge-kevin/Chess-Challenge/resources/Custom/UHO_XXL_+0.80_+1.09.pgn format=pgn order=random plies=8 \
 -pgnout sprt.pgn

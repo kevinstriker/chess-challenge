@@ -8,8 +8,8 @@ using System.Linq;
 public class LiteBlueBot5 : IChessBot
 {
     // Define globals to save tokens
-    Board board;
-    Timer timer;
+    public Board board;
+    public Timer timer;
     int time_limit;
     Move best_move_root;
     int[,,] history_table;
