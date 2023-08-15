@@ -157,8 +157,10 @@ public class LiteBlueBot6 : IChessBot
             // PVS + LMR (Saves tokens, I will not explain, ask Tyrant)
             if (i == 0 || q_search) new_score = Search(beta);
             else if ((new_score = tactical || i < 8 || depth < 3 ? alpha + 1 : Search(alpha + 1, 3)) > alpha &&
-                     (new_score = Search(alpha + 1)) > alpha)
-                new_score = Search(beta);
+                     (new_score =
+                         Search(alpha + 1)) > alpha)
+                new_score =
+                    Search(beta);
             board.UndoMove(move);
 
             if (new_score > best_score)

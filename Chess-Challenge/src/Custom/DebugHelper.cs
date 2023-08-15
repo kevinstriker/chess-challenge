@@ -18,22 +18,22 @@ public static class DebugHelper
         string tealColor = "\x1b[38;5;51m";
         string resetFormat = "\x1b[0m";
 
-        
+
         // Depth level
 
         botName = botName.Replace("Bot", "");
         string depthString = $"{boldText}{orangeColor}{botName} - {depth} ply{resetFormat}";
-        depthString += string.Concat(Enumerable.Repeat(" ", 45 - depthString.Length));
-        
+        depthString += string.Concat(Enumerable.Repeat(" ", 40 - depthString.Length));
+
         // Time
         string timeString =
             $"{textColor}time{orangeColor} {yellowColor}{timer.MillisecondsElapsedThisTurn}ms{resetFormat}";
         timeString += string.Concat(Enumerable.Repeat(" ", 46 - timeString.Length));
-        
+
         // Best Eval
         string bestEvalString = $"{textColor}eval{cyanColor} {score:0} ";
         bestEvalString += $"{cyanColor}{textColor}";
-        bestEvalString += string.Concat(Enumerable.Repeat(" ", 38 - bestEvalString.Length));
+        bestEvalString += string.Concat(Enumerable.Repeat(" ", 36 - bestEvalString.Length));
 
         // Nodes
         string nodesString = $"{textColor}nodes{purpleColor} {greenColor}{nodes}{textColor}";
@@ -44,12 +44,13 @@ public static class DebugHelper
         qnodesString += string.Concat(Enumerable.Repeat(" ", 40 - qnodesString.Length));
 
         // Nodes per second
-        long nps = 1000 * (nodes + qnodes) / (timer.MillisecondsElapsedThisTurn + 1);
-        string npsString = $"{textColor}nps{blueColor} {nps}{textColor}";
-        npsString += string.Concat(Enumerable.Repeat(" ", 40 - npsString.Length));
+        int npms =  (nodes + qnodes) / Math.Max(timer.MillisecondsElapsedThisTurn, 1);
+        string npsString = $"{textColor}npms{blueColor} {npms}{textColor}k";
+        npsString += string.Concat(Enumerable.Repeat(" ", 34 - npsString.Length));
 
         // Best move String 
-        string bestMoveString = $"{textColor}pv{tealColor} {bestMove.MovePieceType} - {bestMove.StartSquare.Name}{bestMove.TargetSquare.Name}";
+        string bestMoveString =
+            $"{textColor}pv{tealColor} {bestMove.MovePieceType} - {bestMove.StartSquare.Name}{bestMove.TargetSquare.Name}";
 
         Console.WriteLine(string.Join(" ",
             new string[]
@@ -57,7 +58,7 @@ public static class DebugHelper
                 depthString, timeString, bestEvalString, nodesString, qnodesString, npsString, bestMoveString
             }));
     }
-    
+
     // Current Bot version
     public static void LogDepth(Timer timer, int depth, int score, MyBot bot)
     {
@@ -69,19 +70,19 @@ public static class DebugHelper
     {
         LogDepth(bot.GetType().ToString(), timer, depth, score, bot.Nodes, bot.QNodes, bot.BestMove);
     }
-    
+
     // The V1 version
     public static void LogDepth(Timer timer, int depth, int score, V1 bot)
     {
         LogDepth(bot.GetType().ToString(), timer, depth, score, bot.Nodes, bot.QNodes, bot.BestMove);
-    }    
-    
+    }
+
     // The Magnesium version
     public static void LogDepth(Timer timer, int depth, int score, MagnesiumBot bot)
     {
         LogDepth(bot.GetType().ToString(), timer, depth, score, bot.Nodes, bot.QNodes, bot.BestMove);
     }
-    
+
     // The V1P1 version (optimised tokens)
     public static void LogDepth(Timer timer, int depth, int score, V1P1 bot)
     {

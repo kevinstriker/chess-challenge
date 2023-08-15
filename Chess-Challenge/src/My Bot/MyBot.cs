@@ -14,11 +14,11 @@ public class MyBot : IChessBot
 
     // Transposition table (size is 2 ^ 22 = 4,194,304 entries)
     private record struct TtEntry(ulong Key, int Score, int Depth, int Flag, Move Move);
-    private TtEntry[] _tt = new TtEntry[0x400000]; 
-    
+    private TtEntry[] _tt = new TtEntry[0x400000];
+
     // Time management
     public Timer Timer;
-    
+
     // Keep track on the best move
     public Move BestMove;
 
@@ -27,40 +27,32 @@ public class MyBot : IChessBot
         int mg = 0, eg = 0, phase = 0, sideToMove = 2;
         for (; --sideToMove >= 0;)
         {
-            for (int piece = -1, square; ++piece < 6;)
+            for (int piece = -1; ++piece < 6;)
             for (ulong mask = board.GetPieceBitboard((PieceType)piece + 1, sideToMove > 0); mask != 0;)
             {
+                // A number between 0 to 63 that indicates which square the piece is on, flip for black
+                int squareIndex = BitboardHelper.ClearAndGetIndexOfLSB(ref mask) ^ 56 * sideToMove;
+
+                // Piece values are baked into the pst (see constructor of the bot)
+                mg += _pst[squareIndex][piece];
+                eg += _pst[squareIndex][piece + 6];
+
+                // The less pieces, the more we bend towards our endgame strategy
                 phase += _phaseWeight[piece];
-                square = BitboardHelper.ClearAndGetIndexOfLSB(ref mask) ^ 56 * sideToMove;
-                mg += _pst[square][piece];
-                eg += _pst[square][piece + 6];
             }
 
+            // Flip score for optimised token count (always white perspective due to double flip)
+            // Eg. White eval = 2300 -> flip -> -2300 -> black eval = 2000 -> -300 -> flip -> 300 
             mg = -mg;
             eg = -eg;
         }
 
+        // Tapered evaluation since our goals towards endgame shifts
         return (mg * phase + eg * (24 - phase)) / 24 * (board.IsWhiteToMove ? 1 : -1);
-    }
-
-    public MyBot()
-    {
-        _pst = _packedPst.Select(packedTable =>
-        {
-            int pieceType = 0;
-            return decimal.GetBits(packedTable).Take(3)
-                .SelectMany(c => BitConverter.GetBytes(c)
-                    .Select(square => (int)((sbyte)square * 1.461) + _pieceValues[pieceType++]))
-                .ToArray();
-        }).ToArray();
     }
 
     public int Search(Board board, int depth, int ply, int alpha, int beta)
     {
-        // Debug keep track on nodes and qnodes searching
-        if (depth > 0) Nodes++;
-        else QNodes++;
-
         // Keep track of the original alpha in order to determine the type of bounds cutoff
         int alphaStart = alpha;
 
@@ -70,13 +62,13 @@ public class MyBot : IChessBot
         // Starting off point of our best found score is always a very "bad" score
         int bestScore = -100000;
 
-        // Leaf nodes
-        if (!root && board.IsRepeatedPosition()) return 0;
-
+        // Check for repetition since TT doesn't know that and we don't want draws when we can win
+        if (!root && board.IsRepeatedPosition()) return 0; // TODO: maybe use here -100;
+        
         // Try to find the board position in the tt
         ulong key = board.ZobristKey;
         TtEntry ttEntry = _tt[key % 0x400000];
-        
+
         // When we find the transposition check if we can use it to narrow our alpha beta bounds
         if (!root && ttEntry.Key == key && ttEntry.Depth >= depth)
         {
@@ -90,9 +82,9 @@ public class MyBot : IChessBot
         }
 
         // Search variables
-        Move bestMove = Move.NullMove;
         bool qSearch = depth < 1;
-
+        Move bestMove = Move.NullMove;
+        
         // Search quiescence before evaluation to prevent horizon effect of depth first search
         if (qSearch)
         {
@@ -101,16 +93,21 @@ public class MyBot : IChessBot
             alpha = Math.Max(alpha, bestScore);
         }
 
-        // Score moves so alpha beta pruning will be more effective (more to prune if we check likely good moves first)
+        // Move Ordering
         Move[] moves = board.GetLegalMoves(qSearch).OrderByDescending(
             move =>
-                move == ttEntry.Move ? 100000 :
-                move.IsCapture ? 1000 * (int)move.CapturePieceType - (int)move.MovePieceType : 0
+                move == ttEntry.Move ? 1000000 :
+                move.IsCapture ? 1000 * (int)move.CapturePieceType - (int)move.MovePieceType :
+                move.IsPromotion ? 100 : 0
         ).ToArray();
 
         foreach (Move move in moves)
         {
             if (Timer.MillisecondsElapsedThisTurn > Timer.MillisecondsRemaining / 40) return 100000;
+
+            // Debug keep track on nodes and qnodes searching
+            if (depth > 0) Nodes++;
+            else QNodes++;
 
             board.MakeMove(move);
             int score = -Search(board, depth - 1, ply + 1, -beta, -alpha);
@@ -128,7 +125,7 @@ public class MyBot : IChessBot
                 if (beta <= alpha) break;
             }
         }
-
+        
         // Efficient way to check for checkmate which is faster (nps)
         if (!qSearch && moves.Length == 0) return board.IsInCheck() ? -100000 + ply : 0;
 
@@ -148,7 +145,7 @@ public class MyBot : IChessBot
 
         // Assign to be globally used
         Timer = timer;
-
+        
         // Reset to prevent lingering previous moves
         BestMove = Move.NullMove;
 
@@ -164,11 +161,11 @@ public class MyBot : IChessBot
 
         Console.WriteLine();
 
-
         return BestMove.IsNull ? board.GetLegalMoves()[0] : BestMove;
     }
-    
-    // PESTO EVALUATE FROM TYRANT
+
+    // 
+    // PST Packer and Un-packer - credits to Tyrant
     readonly int[] _phaseWeight = { 0, 1, 1, 2, 4, 0 };
 
     // Pawn, Knight, Bishop, Rook, Queen, King 
@@ -206,4 +203,16 @@ public class MyBot : IChessBot
 
     private readonly int[][] _pst;
 
+    // Constructor and wizardry to unpack the bitmap piece square tables and bake the piece values into the values
+    public MyBot()
+    {
+        _pst = _packedPst.Select(packedTable =>
+        {
+            int pieceType = 0;
+            return decimal.GetBits(packedTable).Take(3)
+                .SelectMany(c => BitConverter.GetBytes(c)
+                    .Select(square => (int)((sbyte)square * 1.461) + _pieceValues[pieceType++]))
+                .ToArray();
+        }).ToArray();
+    }
 }
