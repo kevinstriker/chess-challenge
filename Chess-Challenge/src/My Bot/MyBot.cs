@@ -4,7 +4,8 @@ using ChessChallenge.API;
 
 /*
  * So here we go, 8 august, let's start from scratch, let's name this project NebulaAI
- * First implementation of: NegaMax, Q Search, Move ordering, Piece Square Tables and Transposition Tables
+ * V1: NegaMax, Q Search, Move ordering, Piece Square Tables and Transposition Tables
+ * V2: Null move pruning, History heuristics
  */
 public class MyBot : IChessBot
 {
@@ -16,8 +17,11 @@ public class MyBot : IChessBot
     private record struct TtEntry(ulong Key, int Score, int Depth, int Flag, Move Move);
     private TtEntry[] _tt = new TtEntry[0x400000];
 
-    // Time management
-    public Timer Timer;
+    // History Heuristics 
+    public int[,,] HistoryHeuristics;
+
+    // Globals
+    public Timer SearchTimer;
 
     // Keep track on the best move
     public Move BestMove;
@@ -51,23 +55,23 @@ public class MyBot : IChessBot
         return (mg * phase + eg * (24 - phase)) / 24 * (board.IsWhiteToMove ? 1 : -1);
     }
 
-    public int Search(Board board, int depth, int ply, int alpha, int beta)
+    public int Search(Board board, int depth, int ply, int alpha, int beta, bool canNullMove = true)
     {
-        // Keep track of the original alpha in order to determine the type of bounds cutoff
-        int alphaStart = alpha;
-
-        // In root node we don't want to TT since we need to set the BestMove
-        bool root = ply == 0;
-
-        // Starting off point of our best found score is always a very "bad" score
-        int bestScore = -100000;
+        // Search variables
+        int alphaStart = alpha,
+            bestScore = -100000,
+            currentTurn = board.IsWhiteToMove ? 1 : 0;
+        bool root = ply == 0,
+            inCheck = board.IsInCheck(),
+            qSearch = depth < 1;
+        Move bestMove = Move.NullMove;
 
         // Check for repetition since TT doesn't know that and we don't want draws when we can win
         if (!root && board.IsRepeatedPosition()) return 0; // TODO: maybe use here -100;
-        
+
         // Try to find the board position in the tt
         ulong key = board.ZobristKey;
-        TtEntry ttEntry = _tt[key % 0x400000];
+        TtEntry ttEntry = _tt[key % 0x400000]; // Todo: deconstruct to save tokens
 
         // When we find the transposition check if we can use it to narrow our alpha beta bounds
         if (!root && ttEntry.Key == key && ttEntry.Depth >= depth)
@@ -81,29 +85,41 @@ public class MyBot : IChessBot
             if (beta <= alpha) return ttEntry.Score;
         }
 
-        // Search variables
-        bool qSearch = depth < 1;
-        Move bestMove = Move.NullMove;
-        
-        // Search quiescence before evaluation to prevent horizon effect of depth first search
+        // Search quiescence position to prevent horizon effect of depth first search
         if (qSearch)
         {
             bestScore = Evaluate(board);
             if (beta <= bestScore) return bestScore;
             alpha = Math.Max(alpha, bestScore);
         }
+        // Null move pruning
+        else if (canNullMove && !inCheck)
+        {
+            board.ForceSkipTurn();
+            // Depth - (1 + R, let's use 2 since everyone online seems to agree with that)
+            int nullMoveEval = -Search(board, depth - 3, ply + 1, -beta, -beta + 1, false);
+            board.UndoSkipTurn();
+
+            // Prune branch when the side who got a free move can't even improve
+            if (beta <= nullMoveEval) return nullMoveEval;
+        }
 
         // Move Ordering
-        Move[] moves = board.GetLegalMoves(qSearch).OrderByDescending(
+        var moves = board.GetLegalMoves(qSearch).OrderByDescending(
             move =>
+                // Best move at transposition
                 move == ttEntry.Move ? 1000000 :
-                move.IsCapture ? 1000 * (int)move.CapturePieceType - (int)move.MovePieceType :
-                move.IsPromotion ? 100 : 0
+                // MVV-LVA
+                move.IsCapture ? 100000 * (int)move.CapturePieceType - (int)move.MovePieceType :
+                // Promotions
+                move.IsPromotion ? 100000 :
+                // History Heuristics
+                HistoryHeuristics[currentTurn, (int)move.MovePieceType, move.TargetSquare.Index]
         ).ToArray();
 
         foreach (Move move in moves)
         {
-            if (Timer.MillisecondsElapsedThisTurn > Timer.MillisecondsRemaining / 40) return 100000;
+            if (SearchTimer.MillisecondsElapsedThisTurn > SearchTimer.MillisecondsRemaining / 40) return 100000;
 
             // Debug keep track on nodes and qnodes searching
             if (depth > 0) Nodes++;
@@ -122,10 +138,15 @@ public class MyBot : IChessBot
                 alpha = Math.Max(alpha, bestScore);
 
                 // Beta cutoff when there is an established better branch that resulted in the alpha score
-                if (beta <= alpha) break;
+                if (beta <= alpha)
+                {
+                    if (!qSearch && !move.IsCapture) 
+                        HistoryHeuristics[currentTurn, (int)move.MovePieceType, move.TargetSquare.Index] += depth * depth;
+                    break;
+                }
             }
         }
-        
+
         // Efficient way to check for checkmate which is faster (nps)
         if (!qSearch && moves.Length == 0) return board.IsInCheck() ? -100000 + ply : 0;
 
@@ -143,20 +164,22 @@ public class MyBot : IChessBot
         Nodes = 0;
         QNodes = 0;
 
-        // Assign to be globally used
-        Timer = timer;
-        
+        SearchTimer = timer;
+
+        // History heuristics
+        HistoryHeuristics = new int[2, 7, 64];
+
         // Reset to prevent lingering previous moves
         BestMove = Move.NullMove;
 
         // Iterative deepening
         for (int depth = 1; depth < 50; depth++)
         {
-            int score = Search(board, depth, 0, -100000, 100000);
+            int score = Search(board, depth, 0, -100000, 100000, true);
 
-            DebugHelper.LogDepth(timer, depth, score, this);
+            DebugHelper.LogDepth(SearchTimer, depth, score, this);
 
-            if (Timer.MillisecondsElapsedThisTurn > Timer.MillisecondsRemaining / 40) break;
+            if (SearchTimer.MillisecondsElapsedThisTurn > SearchTimer.MillisecondsRemaining / 40) break;
         }
 
         Console.WriteLine();
@@ -210,7 +233,7 @@ public class MyBot : IChessBot
         {
             int pieceType = 0;
             return decimal.GetBits(packedTable).Take(3)
-                .SelectMany(c => BitConverter.GetBytes(c)
+                .SelectMany(bit => BitConverter.GetBytes(bit)
                     .Select(square => (int)((sbyte)square * 1.461) + _pieceValues[pieceType++]))
                 .ToArray();
         }).ToArray();

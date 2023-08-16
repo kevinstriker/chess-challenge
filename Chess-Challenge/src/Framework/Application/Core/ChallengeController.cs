@@ -26,6 +26,7 @@ namespace ChessChallenge.Application
             EvilBot,
             // Custom: my previous version of the bot
             V1,
+            V2,
             MinusOneBot, 
             // Custom: other bots
             NegaMaxBot, // T1
@@ -49,6 +50,7 @@ namespace ChessChallenge.Application
                 PlayerType.EvilBot => new EvilBot(),
                 // Custom: my previous version
                 PlayerType.V1 => new V1(),
+                PlayerType.V2 => new V2(),
                 PlayerType.MinusOneBot => new MinusOneBot(),
                 // Custom: other bots
                 PlayerType.NegaMaxBot => new NegaMaxBot(),
@@ -252,6 +254,7 @@ namespace ChessChallenge.Application
                 PlayerType.MyBot => new ChessPlayer(new MyBot(), type, GameDurationMilliseconds),
                 PlayerType.EvilBot => new ChessPlayer(new EvilBot(), type, GameDurationMilliseconds),
                 PlayerType.V1 => new ChessPlayer(new V1(), type, GameDurationMilliseconds),
+                PlayerType.V2 => new ChessPlayer(new V2(), type, GameDurationMilliseconds),
                 PlayerType.MinusOneBot => new ChessPlayer(new MinusOneBot(), type, GameDurationMilliseconds),
                 PlayerType.NegaMaxBot => new ChessPlayer(new NegaMaxBot(), type, GameDurationMilliseconds),
                 PlayerType.JacquesBot => new ChessPlayer(new JacquesBot(), type, GameDurationMilliseconds),

@@ -18,9 +18,7 @@ public static class DebugHelper
         string tealColor = "\x1b[38;5;51m";
         string resetFormat = "\x1b[0m";
 
-
         // Depth level
-
         botName = botName.Replace("Bot", "");
         string depthString = $"{boldText}{orangeColor}{botName} - {depth} ply{resetFormat}";
         depthString += string.Concat(Enumerable.Repeat(" ", 40 - depthString.Length));
@@ -70,22 +68,11 @@ public static class DebugHelper
     {
         LogDepth(bot.GetType().ToString(), timer, depth, score, bot.Nodes, bot.QNodes, bot.BestMove);
     }
-
-    // The V1 version
-    public static void LogDepth(Timer timer, int depth, int score, V1 bot)
-    {
-        LogDepth(bot.GetType().ToString(), timer, depth, score, bot.Nodes, bot.QNodes, bot.BestMove);
-    }
-
+    
     // The Magnesium version
     public static void LogDepth(Timer timer, int depth, int score, MagnesiumBot bot)
     {
         LogDepth(bot.GetType().ToString(), timer, depth, score, bot.Nodes, bot.QNodes, bot.BestMove);
     }
-
-    // The V1P1 version (optimised tokens)
-    public static void LogDepth(Timer timer, int depth, int score, V1P1 bot)
-    {
-        LogDepth(bot.GetType().ToString(), timer, depth, score, bot.Nodes, bot.QNodes, bot.BestMove);
-    }
+    
 }

@@ -7,12 +7,8 @@ using ChessChallenge.API;
  * V1: NegaMax, Q Search, Move ordering, Piece Square Tables and Transposition Tables
  * V2: Null move pruning, History heuristics
  */
-public class MinusOneBot : IChessBot
+public class V2 : IChessBot
 {
-    // Debug purpose
-    public int Nodes;
-    public int QNodes;
-
     // Transposition table (size is 2 ^ 22 = 4,194,304 entries)
     private record struct TtEntry(ulong Key, int Score, int Depth, int Flag, Move Move);
     private TtEntry[] _tt = new TtEntry[0x400000];
@@ -21,10 +17,10 @@ public class MinusOneBot : IChessBot
     public int[,,] HistoryHeuristics;
 
     // Globals
-    public Timer SearchTimer;
+    Timer _searchTimer;
 
     // Keep track on the best move
-    public Move BestMove;
+    Move _bestMove;
 
     private int Evaluate(Board board)
     {
@@ -119,19 +115,15 @@ public class MinusOneBot : IChessBot
 
         foreach (Move move in moves)
         {
-            if (SearchTimer.MillisecondsElapsedThisTurn > SearchTimer.MillisecondsRemaining / 40) return 100000;
-
-            // Debug keep track on nodes and qnodes searching
-            if (depth > 0) Nodes++;
-            else QNodes++;
-
+            if (_searchTimer.MillisecondsElapsedThisTurn > _searchTimer.MillisecondsRemaining / 40) return 100000;
+            
             board.MakeMove(move);
             int score = -Search(board, depth - 1, ply + 1, -beta, -alpha);
             board.UndoMove(move);
 
             if (score > bestScore)
             {
-                if (ply == 0) BestMove = move;
+                if (ply == 0) _bestMove = move;
 
                 bestMove = move;
                 bestScore = score;
@@ -161,30 +153,23 @@ public class MinusOneBot : IChessBot
 
     public Move Think(Board board, Timer timer)
     {
-        Nodes = 0;
-        QNodes = 0;
-
-        SearchTimer = timer;
+        _searchTimer = timer;
 
         // History heuristics
         HistoryHeuristics = new int[2, 7, 64];
 
         // Reset to prevent lingering previous moves
-        BestMove = Move.NullMove;
+        _bestMove = Move.NullMove;
 
         // Iterative deepening
         for (int depth = 1; depth < 50; depth++)
         {
-            int score = Search(board, depth, 0, -100000, 100000, true);
-
-            DebugHelper.LogDepth(SearchTimer, depth, score, this);
-
-            if (SearchTimer.MillisecondsElapsedThisTurn > SearchTimer.MillisecondsRemaining / 40) break;
+            Search(board, depth, 0, -100000, 100000, true);
+            
+            if (_searchTimer.MillisecondsElapsedThisTurn > _searchTimer.MillisecondsRemaining / 40) break;
         }
-
-        Console.WriteLine();
-
-        return BestMove.IsNull ? board.GetLegalMoves()[0] : BestMove;
+        
+        return _bestMove.IsNull ? board.GetLegalMoves()[0] : _bestMove;
     }
 
     // 
@@ -227,7 +212,7 @@ public class MinusOneBot : IChessBot
     private readonly int[][] _pst;
 
     // Constructor and wizardry to unpack the bitmap piece square tables and bake the piece values into the values
-    public MinusOneBot()
+    public V2()
     {
         _pst = _packedPst.Select(packedTable =>
         {

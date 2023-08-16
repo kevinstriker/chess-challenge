@@ -3,15 +3,13 @@ using System.Linq;
 using ChessChallenge.API;
 
 /*
- * NebulaAI, this is Kevin Vermaat submission for the tiny chess engine challenge: https://github.com/SebLague/Chess-Challenge
+ * So here we go, 8 august, let's start from scratch, let's name this project NebulaAI
+ * V1: NegaMax, Q Search, Move ordering, Piece Square Tables and Transposition Tables
  */
 public class V1 : IChessBot
 {
-    public int Nodes;
-    public int QNodes;
-
     // Transposition table
-    public struct TtEntry
+    struct TtEntry
     {
         public readonly ulong Key;
         public readonly int Score, Depth, Flag;
@@ -26,12 +24,11 @@ public class V1 : IChessBot
             Move = move;
         }
     }
-
-    public const int TtEntryCount = 1 << 22;
-    public TtEntry[] Tt = new TtEntry[TtEntryCount];
+    const int TtEntryCount = 1 << 22;
+    TtEntry[] _tt = new TtEntry[TtEntryCount];
     
     // Time management
-    public Timer Timer;
+    Timer _searchTimer;
 
     // Evaluate
     //                                P    K    B    R    Q     K
@@ -58,7 +55,7 @@ public class V1 : IChessBot
         329978099633296596, 67159620133902
     };
 
-    public Move BestMove;
+    Move _bestMove;
 
     // A getter method thanks to example bot JW 
     private int GetPstVal(int psq)
@@ -101,9 +98,6 @@ public class V1 : IChessBot
     // Quiescence search which means we're searching for a "quiet" position before return the evaluation
     private int QSearch(Board board, int alpha, int beta)
     {
-        // Debug
-        QNodes++;
-
         // We're not forced to capture so also evaluate the current position which might be a great situation
         int standPat = Evaluate(board);
             
@@ -138,9 +132,6 @@ public class V1 : IChessBot
 
     public int NegaMax(Board board, int depth, int ply, int alpha, int beta)
     {
-        // Debug keep track on nodes and qnodes searching
-        Nodes++;
-
         // Keep track of the original alpha in order to determine the type of bounds cutoff
         int alphaStart = alpha;
         bool root = ply == 0;
@@ -150,7 +141,7 @@ public class V1 : IChessBot
 
         // Try to find the board position in the tt
         ulong key = board.ZobristKey;
-        TtEntry ttEntry = Tt[key % TtEntryCount];
+        TtEntry ttEntry = _tt[key % TtEntryCount];
 
         // When we find the transposition check if we can use it to narrow our alpha beta bounds
         if (!root && ttEntry.Key == key && ttEntry.Depth >= depth)
@@ -192,7 +183,7 @@ public class V1 : IChessBot
 
         foreach (Move move in moves.Reverse())
         {
-            if (Timer.MillisecondsElapsedThisTurn > Timer.MillisecondsRemaining / 40) return 100000;
+            if (_searchTimer.MillisecondsElapsedThisTurn > _searchTimer.MillisecondsRemaining / 40) return 100000;
 
             board.MakeMove(move);
             int score = -NegaMax(board, depth - 1, ply + 1, -beta, -alpha);
@@ -200,7 +191,7 @@ public class V1 : IChessBot
 
             if (score > bestScore)
             {
-                if (ply == 0) BestMove = move;
+                if (ply == 0) _bestMove = move;
                 bestMove = move;
                 bestScore = score;
                 alpha = Math.Max(alpha, bestScore);
@@ -214,34 +205,27 @@ public class V1 : IChessBot
         int flag = bestScore <= alphaStart ? 3 : bestScore >= beta ? 1 : 2;
 
         // Store the position and it's eval to the transposition table for fast lookup when same position is found twice
-        Tt[key % TtEntryCount] = new TtEntry(key, bestScore, depth, flag, bestMove);
+        _tt[key % TtEntryCount] = new TtEntry(key, bestScore, depth, flag, bestMove);
 
         return bestScore;
     }
 
     public Move Think(Board board, Timer timer)
     {
-        Nodes = 0;
-        QNodes = 0;
-
         // Assign to be globally used
-        Timer = timer;
+        _searchTimer = timer;
 
         // Reset to prevent lingering previous moves
-        BestMove = Move.NullMove;
+        _bestMove = Move.NullMove;
 
         // Iterative deepening
         for (int depth = 1; depth < 50; depth++)
         {
-            int score = NegaMax(board, depth, 0, -100000, 100000);
+            NegaMax(board, depth, 0, -100000, 100000);
 
-            DebugHelper.LogDepth(timer, depth, score, this);
-
-            if (Timer.MillisecondsElapsedThisTurn > Timer.MillisecondsRemaining / 40) break;
+            if (_searchTimer.MillisecondsElapsedThisTurn > _searchTimer.MillisecondsRemaining / 40) break;
         }
-        
-        Console.WriteLine();
-        
-        return BestMove.IsNull ? board.GetLegalMoves()[0] : BestMove;
+
+        return _bestMove.IsNull ? board.GetLegalMoves()[0] : _bestMove;
     }
 }

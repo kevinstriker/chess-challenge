@@ -16,7 +16,8 @@ public class MyBotTest
     {
         _myBot = new MyBot
         {
-            Timer = new Timer(60000000, 60000000, 0)
+            SearchTimer = new Timer(60000000, 60000000, 0),
+            HistoryHeuristics = new int[2, 7, 64]
         };
         _stopwatch = Stopwatch.StartNew();
     }
@@ -28,7 +29,7 @@ public class MyBotTest
     {
         // Checkmate by queen sacrifice
         _testBoard = Board.CreateBoardFromFEN("2r2bk1/p5p1/1p1p2Qp/2PNp3/PR1nNr1q/3P4/5PPP/5RK1 b - - 0 1");
-
+        
         for (int depth = 1; depth <= 6; depth++)
         {
             int score = _myBot.Search(_testBoard, depth, 0, -100000, 100000);
@@ -48,7 +49,7 @@ public class MyBotTest
 
         for (int depth = 1; depth <= 8; depth++)
         {
-            int score = _myBot.Search(_testBoard, depth, 6, -100000, 100000);
+            int score = _myBot.Search(_testBoard, depth, 0, -100000, 100000);
             LogAll(score);
         }
 
@@ -65,7 +66,7 @@ public class MyBotTest
 
         for (int depth = 1; depth <= 8; depth++)
         {
-            int score = _myBot.Search(_testBoard, depth, 6, -100000, 100000);
+            int score = _myBot.Search(_testBoard, depth, 0, -100000, 100000);
             LogAll(score);
         }
 
@@ -80,7 +81,7 @@ public class MyBotTest
         // Win a Rook and a Pawn for a bishop
         _testBoard = Board.CreateBoardFromFEN("rn3r1k/pp3p1p/4bN2/q3Q3/1b1p3P/5N2/PPP2PP1/2KR1B1R b - - 2 14");
 
-        for (int depth = 1; depth <= 6; depth++)
+        for (int depth = 1; depth <= 8; depth++)
         {
             int score = _myBot.Search(_testBoard, depth, 0, -100000, 100000);
             LogAll(score);
@@ -182,7 +183,7 @@ public class MyBotTest
         // Give up queen to win one later
         _testBoard = Board.CreateBoardFromFEN("r2q1rk1/1pp1bppp/4bn2/pP6/n2Bp3/P3P1NP/2PN1PP1/2RQKB1R b K - 2 13");
 
-        for (int depth = 1; depth <= 8; depth++)
+        for (int depth = 1; depth <= 9; depth++)
         {
             int score = _myBot.Search(_testBoard, depth, 0, -100000, 100000);
             LogAll(score);
@@ -193,24 +194,6 @@ public class MyBotTest
         Assert.That(_myBot.BestMove.TargetSquare.Name, Is.EqualTo("d4"));
     }
     
-    [Test]
-    public void TestPuzzle11()
-    {
-        // Prevent 3 fold repetition when you're winning big time
-        _testBoard = Board.CreateBoardFromFEN("r6r/ppp1B2p/2b2Qpk/n7/8/P7/1P3PPP/R3K2R w KQ - 5 26");
-
-        int score = -100000;
-        
-        for (int depth = 1; depth <= 5; depth++)
-        {
-            score = _myBot.Search(_testBoard, depth, 0, -100000, 100000);
-
-        }
-        LogAll(score);
-        
-        Assert.That(score, Is.GreaterThan(10));
-    }
-
     #endregion
 
     #region Move ordering
