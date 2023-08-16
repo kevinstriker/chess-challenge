@@ -28,7 +28,7 @@ public class V1 : IChessBot
     TtEntry[] _tt = new TtEntry[TtEntryCount];
     
     // Time management
-    Timer _searchTimer;
+    public Timer SearchTimer;
 
     // Evaluate
     //                                P    K    B    R    Q     K
@@ -55,7 +55,7 @@ public class V1 : IChessBot
         329978099633296596, 67159620133902
     };
 
-    Move _bestMove;
+    public Move BestMove;
 
     // A getter method thanks to example bot JW 
     private int GetPstVal(int psq)
@@ -119,12 +119,12 @@ public class V1 : IChessBot
             int score = -QSearch(board, -beta, -alpha);
             board.UndoMove(move);
             
-            // Beta cutoff when there is an established better option for the other player
-            if (beta <= score)
-                return beta;
-            
             // Improve alpha if this move is a better move (eg. capture queen with pawn etc)
             alpha = Math.Max(alpha, score);
+            
+            // Beta cutoff when there is an established better option for the other player
+            if (beta <= score)
+                return score;
         }
 
         return alpha;
@@ -183,7 +183,7 @@ public class V1 : IChessBot
 
         foreach (Move move in moves.Reverse())
         {
-            if (_searchTimer.MillisecondsElapsedThisTurn > _searchTimer.MillisecondsRemaining / 40) return 100000;
+            if (SearchTimer.MillisecondsElapsedThisTurn > SearchTimer.MillisecondsRemaining / 40) return 100000;
 
             board.MakeMove(move);
             int score = -NegaMax(board, depth - 1, ply + 1, -beta, -alpha);
@@ -191,7 +191,7 @@ public class V1 : IChessBot
 
             if (score > bestScore)
             {
-                if (ply == 0) _bestMove = move;
+                if (ply == 0) BestMove = move;
                 bestMove = move;
                 bestScore = score;
                 alpha = Math.Max(alpha, bestScore);
@@ -213,19 +213,19 @@ public class V1 : IChessBot
     public Move Think(Board board, Timer timer)
     {
         // Assign to be globally used
-        _searchTimer = timer;
+        SearchTimer = timer;
 
         // Reset to prevent lingering previous moves
-        _bestMove = Move.NullMove;
+        BestMove = Move.NullMove;
 
         // Iterative deepening
         for (int depth = 1; depth < 50; depth++)
         {
             NegaMax(board, depth, 0, -100000, 100000);
 
-            if (_searchTimer.MillisecondsElapsedThisTurn > _searchTimer.MillisecondsRemaining / 40) break;
+            if (SearchTimer.MillisecondsElapsedThisTurn > SearchTimer.MillisecondsRemaining / 40) break;
         }
 
-        return _bestMove.IsNull ? board.GetLegalMoves()[0] : _bestMove;
+        return BestMove.IsNull ? board.GetLegalMoves()[0] : BestMove;
     }
 }

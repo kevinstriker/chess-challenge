@@ -4,20 +4,20 @@ using Timer = ChessChallenge.API.Timer;
 
 namespace Chess_Challenge_Tests;
 
-public class MyBotTest
+public class LteBlueBotTest
 {
-    private MyBot _myBot;
+    private LiteBlueBot6 _bot;
     private Board _testBoard;
     private Stopwatch _stopwatch;
-
-
+    
     [SetUp]
     public void Setup()
     {
-        _myBot = new MyBot
+        _bot = new LiteBlueBot6
         {
-            SearchTimer = new Timer(60000000, 60000000, 0),
-            HistoryHeuristics = new int[2, 7, 64]
+            timer = new Timer(60000000, 60000000, 0),
+            history_table = new int[2, 7, 64],
+            time_limit = 100000000
         };
         _stopwatch = Stopwatch.StartNew();
     }
@@ -32,13 +32,13 @@ public class MyBotTest
         
         for (int depth = 1; depth <= 6; depth++)
         {
-            int score = _myBot.Search(_testBoard, depth, 0, -100000, 100000);
+            int score = _bot.Search(_testBoard, depth, 0, -100000, 100000, true);
             LogAll(score);
         }
 
-        Assert.That(_myBot.BestMove.MovePieceType, Is.EqualTo(PieceType.Knight));
-        Assert.That(_myBot.BestMove.StartSquare.Name, Is.EqualTo("d4"));
-        Assert.That(_myBot.BestMove.TargetSquare.Name, Is.EqualTo("e2"));
+        Assert.That(_bot.best_move_root.MovePieceType, Is.EqualTo(PieceType.Knight));
+        Assert.That(_bot.best_move_root.StartSquare.Name, Is.EqualTo("d4"));
+        Assert.That(_bot.best_move_root.TargetSquare.Name, Is.EqualTo("e2"));
     }
 
     [Test]
@@ -49,13 +49,13 @@ public class MyBotTest
 
         for (int depth = 1; depth <= 8; depth++)
         {
-            int score = _myBot.Search(_testBoard, depth, 0, -100000, 100000);
+            int score = _bot.Search(_testBoard, depth, 0, -100000, 100000, true);
             LogAll(score);
         }
 
-        Assert.That(_myBot.BestMove.MovePieceType, Is.EqualTo(PieceType.Queen));
-        Assert.That(_myBot.BestMove.StartSquare.Name, Is.EqualTo("g5"));
-        Assert.That(_myBot.BestMove.TargetSquare.Name, Is.EqualTo("f5"));
+        Assert.That(_bot.best_move_root.MovePieceType, Is.EqualTo(PieceType.Queen));
+        Assert.That(_bot.best_move_root.StartSquare.Name, Is.EqualTo("g5"));
+        Assert.That(_bot.best_move_root.TargetSquare.Name, Is.EqualTo("f5"));
     }
 
     [Test]
@@ -66,13 +66,12 @@ public class MyBotTest
 
         for (int depth = 1; depth <= 8; depth++)
         {
-            int score = _myBot.Search(_testBoard, depth, 0, -100000, 100000);
-            LogAll(score);
+            int score = _bot.Search(_testBoard, depth, 0, -100000, 100000, true);
         }
 
-        Assert.That(_myBot.BestMove.MovePieceType, Is.EqualTo(PieceType.Rook));
-        Assert.That(_myBot.BestMove.StartSquare.Name, Is.EqualTo("d8"));
-        Assert.That(_myBot.BestMove.TargetSquare.Name, Is.EqualTo("a8"));
+        Assert.That(_bot.best_move_root.MovePieceType, Is.EqualTo(PieceType.Rook));
+        Assert.That(_bot.best_move_root.StartSquare.Name, Is.EqualTo("d8"));
+        Assert.That(_bot.best_move_root.TargetSquare.Name, Is.EqualTo("a8"));
     }
 
     [Test]
@@ -83,13 +82,13 @@ public class MyBotTest
 
         for (int depth = 1; depth <= 8; depth++)
         {
-            int score = _myBot.Search(_testBoard, depth, 0, -100000, 100000);
+            int score = _bot.Search(_testBoard, depth, 0, -100000, 100000, true);
             LogAll(score);
         }
 
-        Assert.That(_myBot.BestMove.MovePieceType, Is.EqualTo(PieceType.Queen));
-        Assert.That(_myBot.BestMove.StartSquare.Name, Is.EqualTo("a5"));
-        Assert.That(_myBot.BestMove.TargetSquare.Name, Is.EqualTo("a2"));
+        Assert.That(_bot.best_move_root.MovePieceType, Is.EqualTo(PieceType.Queen));
+        Assert.That(_bot.best_move_root.StartSquare.Name, Is.EqualTo("a5"));
+        Assert.That(_bot.best_move_root.TargetSquare.Name, Is.EqualTo("a2"));
     }
 
     [Test]
@@ -100,13 +99,13 @@ public class MyBotTest
 
         for (int depth = 1; depth <= 10; depth++)
         {
-            int score = _myBot.Search(_testBoard, depth, 0, -100000, 100000);
+            int score = _bot.Search(_testBoard, depth, 0, -100000, 100000, true);
             LogAll(score);
         }
 
-        Assert.That(_myBot.BestMove.MovePieceType, Is.EqualTo(PieceType.Pawn));
-        Assert.That(_myBot.BestMove.StartSquare.Name, Is.EqualTo("g5"));
-        Assert.That(_myBot.BestMove.TargetSquare.Name, Is.EqualTo("g4"));
+        Assert.That(_bot.best_move_root.MovePieceType, Is.EqualTo(PieceType.Pawn));
+        Assert.That(_bot.best_move_root.StartSquare.Name, Is.EqualTo("g5"));
+        Assert.That(_bot.best_move_root.TargetSquare.Name, Is.EqualTo("g4"));
     }
 
     [Test]
@@ -117,13 +116,13 @@ public class MyBotTest
 
         for (int depth = 1; depth <= 8; depth++)
         {
-            int score = _myBot.Search(_testBoard, depth, 0, -100000, 100000);
+            int score = _bot.Search(_testBoard, depth, 0, -100000, 100000, true);
             LogAll(score);
         }
 
-        Assert.That(_myBot.BestMove.MovePieceType, Is.EqualTo(PieceType.Rook));
-        Assert.That(_myBot.BestMove.StartSquare.Name, Is.EqualTo("a1"));
-        Assert.That(_myBot.BestMove.TargetSquare.Name, Is.EqualTo("b1"));
+        Assert.That(_bot.best_move_root.MovePieceType, Is.EqualTo(PieceType.Rook));
+        Assert.That(_bot.best_move_root.StartSquare.Name, Is.EqualTo("a1"));
+        Assert.That(_bot.best_move_root.TargetSquare.Name, Is.EqualTo("b1"));
     }
 
     [Test]
@@ -134,13 +133,13 @@ public class MyBotTest
 
         for (int depth = 1; depth <= 6; depth++)
         {
-            int score = _myBot.Search(_testBoard, depth, 0, -100000, 100000);
+            int score = _bot.Search(_testBoard, depth, 0, -100000, 100000, true);
             LogAll(score);
         }
 
-        Assert.That(_myBot.BestMove.MovePieceType, Is.EqualTo(PieceType.Pawn));
-        Assert.That(_myBot.BestMove.StartSquare.Name, Is.EqualTo("e6"));
-        Assert.That(_myBot.BestMove.TargetSquare.Name, Is.EqualTo("e5"));
+        Assert.That(_bot.best_move_root.MovePieceType, Is.EqualTo(PieceType.Pawn));
+        Assert.That(_bot.best_move_root.StartSquare.Name, Is.EqualTo("e6"));
+        Assert.That(_bot.best_move_root.TargetSquare.Name, Is.EqualTo("e5"));
     }
 
     [Test]
@@ -151,13 +150,13 @@ public class MyBotTest
 
         for (int depth = 1; depth <= 9; depth++)
         {
-            int score = _myBot.Search(_testBoard, depth, 0, -100000, 100000);
+            int score = _bot.Search(_testBoard, depth, 0, -100000, 100000, true);
             LogAll(score);
         }
 
-        Assert.That(_myBot.BestMove.MovePieceType, Is.EqualTo(PieceType.Bishop));
-        Assert.That(_myBot.BestMove.StartSquare.Name, Is.EqualTo("e6"));
-        Assert.That(_myBot.BestMove.TargetSquare.Name, Is.EqualTo("d5"));
+        Assert.That(_bot.best_move_root.MovePieceType, Is.EqualTo(PieceType.Bishop));
+        Assert.That(_bot.best_move_root.StartSquare.Name, Is.EqualTo("e6"));
+        Assert.That(_bot.best_move_root.TargetSquare.Name, Is.EqualTo("d5"));
     }
 
     [Test]
@@ -168,13 +167,13 @@ public class MyBotTest
 
         for (int depth = 1; depth <= 9; depth++)
         {
-            int score = _myBot.Search(_testBoard, depth, 0, -100000, 100000);
+            int score = _bot.Search(_testBoard, depth, 0, -100000, 100000, true);
             LogAll(score);
         }
 
-        Assert.That(_myBot.BestMove.MovePieceType, Is.EqualTo(PieceType.Bishop));
-        Assert.That(_myBot.BestMove.StartSquare.Name, Is.EqualTo("d4"));
-        Assert.That(_myBot.BestMove.TargetSquare.Name, Is.EqualTo("e3"));
+        Assert.That(_bot.best_move_root.MovePieceType, Is.EqualTo(PieceType.Bishop));
+        Assert.That(_bot.best_move_root.StartSquare.Name, Is.EqualTo("d4"));
+        Assert.That(_bot.best_move_root.TargetSquare.Name, Is.EqualTo("e3"));
     }
 
     [Test]
@@ -185,15 +184,31 @@ public class MyBotTest
 
         for (int depth = 1; depth <= 9; depth++)
         {
-            int score = _myBot.Search(_testBoard, depth, 0, -100000, 100000);
+            int score = _bot.Search(_testBoard, depth, 0, -100000, 100000, true);
             LogAll(score);
         }
 
-        Assert.That(_myBot.BestMove.MovePieceType, Is.EqualTo(PieceType.Queen));
-        Assert.That(_myBot.BestMove.StartSquare.Name, Is.EqualTo("d8"));
-        Assert.That(_myBot.BestMove.TargetSquare.Name, Is.EqualTo("d4"));
+        Assert.That(_bot.best_move_root.MovePieceType, Is.EqualTo(PieceType.Queen));
+        Assert.That(_bot.best_move_root.StartSquare.Name, Is.EqualTo("d8"));
+        Assert.That(_bot.best_move_root.TargetSquare.Name, Is.EqualTo("d4"));
     }
-    
+
+    [Test]
+    public void TestPuzzle11()
+    {
+        // Give up queen to win one later
+        _testBoard = Board.CreateBoardFromFEN("5rk1/2p2qp1/3b3p/8/2PQ4/3P3P/Pr1B1Pp1/3R1RK1 w - - 0 23");
+
+        for (int depth = 1; depth <= 12; depth++)
+        {
+            int score = _bot.Search(_testBoard, depth, 0, -100000, 100000, true);
+            LogAll(score);
+        }
+
+        Assert.That(_bot.best_move_root.MovePieceType, Is.EqualTo(PieceType.Rook));
+        Assert.That(_bot.best_move_root.StartSquare.Name, Is.EqualTo("f1"));
+        Assert.That(_bot.best_move_root.TargetSquare.Name, Is.EqualTo("e1"));
+    }
     
     #endregion
 
@@ -204,7 +219,7 @@ public class MyBotTest
     {
         _testBoard = Board.CreateBoardFromFEN("2b1kb1r/P1pppppp/4nn2/1N4q1/2B2B2/4PN1P/1PPPQPP1/R3K2R w KQk - 0 1");
         
-        int score = _myBot.Search(_testBoard, 1, 0, -100000, 100000);
+        int score = _bot.Search(_testBoard, 1, 0, -100000, 100000, true);
         
         LogAll(score);
     }
@@ -220,30 +235,15 @@ public class MyBotTest
         
         for (int depth = 1; depth <= 8; depth++)
         {
-            int score = _myBot.Search(_testBoard, depth, 0, -100000, 100000);
+            int score = _bot.Search(_testBoard, depth, 0, -100000, 100000, true);
             LogAll(score);
         }
 
-        Assert.That(_myBot.BestMove.MovePieceType, Is.EqualTo(PieceType.Knight));
-        Assert.That(_myBot.BestMove.StartSquare.Name, Is.EqualTo("c3"));
-        Assert.That(_myBot.BestMove.TargetSquare.Name, Is.EqualTo("d5"));
+        Assert.That(_bot.best_move_root.MovePieceType, Is.EqualTo(PieceType.Knight));
+        Assert.That(_bot.best_move_root.StartSquare.Name, Is.EqualTo("c3"));
+        Assert.That(_bot.best_move_root.TargetSquare.Name, Is.EqualTo("d5"));
     }
 
-    [Test]
-    public void TestPuzzle11()
-    {
-        _testBoard = Board.CreateBoardFromFEN("5rk1/2p2qp1/3b3p/8/2PQ4/3P3P/Pr1B1Pp1/3R1RK1 w - - 0 23");
-
-        for (int depth = 1; depth <= 13; depth++)
-        {
-            int score = _myBot.Search(_testBoard, depth, 0, -100000, 100000);
-            LogAll(score);
-        }
-        Assert.That(_myBot.BestMove.MovePieceType, Is.EqualTo(PieceType.Rook));
-        Assert.That(_myBot.BestMove.StartSquare.Name, Is.EqualTo("f1"));
-        Assert.That(_myBot.BestMove.TargetSquare.Name, Is.EqualTo("e1"));
-    }
-    
     #endregion
 
     #region Logging
@@ -253,12 +253,12 @@ public class MyBotTest
         Console.WriteLine("score {0}, time {1}ms, nodes {2} qNodes {3}, nps {4}, DepthMove {5}-{6}{7}",
             score,
             _stopwatch.ElapsedMilliseconds,
-            _myBot.Nodes,
-            _myBot.QNodes,
-            (_myBot.Nodes + _myBot.QNodes) / (_stopwatch.ElapsedMilliseconds + 1) * 1000,
-            _myBot.BestMove.MovePieceType.ToString(),
-            _myBot.BestMove.StartSquare.Name,
-            _myBot.BestMove.TargetSquare.Name);
+            _bot.Nodes,
+            _bot.QNodes,
+            (_bot.Nodes + _bot.QNodes) / (_stopwatch.ElapsedMilliseconds + 1) * 1000,
+            _bot.best_move_root.MovePieceType.ToString(),
+            _bot.best_move_root.StartSquare.Name,
+            _bot.best_move_root.TargetSquare.Name);
     }
 
     #endregion

@@ -7,12 +7,15 @@ using System.Linq;
 
 public class LiteBlueBot6 : IChessBot
 {
+    // Debug purpose
+    public int Nodes;
+    public int QNodes;
+    
     // Define globals to save tokens
-    public Board board;
     public Timer timer;
-    int time_limit;
+    public int time_limit;
     public Move best_move_root;
-    int[,,] history_table;
+    public int[,,] history_table;
 
 #if UCI
     long nodes;
@@ -25,9 +28,8 @@ public class LiteBlueBot6 : IChessBot
     Entry[] tt = new Entry[0x400000];
 
     // Required Think Method
-    public Move Think(Board _board, Timer _timer)
+    public Move Think(Board board, Timer _timer)
     {
-        board = _board;
         timer = _timer;
         time_limit = timer.MillisecondsRemaining / 40;
         history_table = new int[2, 7, 64];
@@ -40,7 +42,7 @@ public class LiteBlueBot6 : IChessBot
         // Iterative Deepening Loop
         for (int depth = 0;;)
         {
-            int score = Search(++depth, 0, -100000, 100000, true);
+            int score = Search(board, ++depth, 0, -100000, 100000, true);
 
             // Check if time is expired
             if (timer.MillisecondsElapsedThisTurn > time_limit)
@@ -69,7 +71,7 @@ public class LiteBlueBot6 : IChessBot
         return best_move_root;
     }
 
-    public int Search(int depth, int ply, int alpha, int beta, bool do_null)
+    public int Search(Board board, int depth, int ply, int alpha, int beta, bool do_null)
     {
         // Increment node counter
 #if UCI
@@ -102,14 +104,14 @@ public class LiteBlueBot6 : IChessBot
         // Delta Pruning
         if (q_search)
         {
-            best_score = Eval();
+            best_score = Eval(board);
             if (best_score >= beta) return beta;
             alpha = Math.Max(alpha, best_score);
         }
         else if (!pv_node && !in_check)
         {
             // Static eval calculation for pruning
-            int static_eval = Eval();
+            int static_eval = Eval(board);
 
             // Reverse Futility Pruning
             if (static_eval - 85 * depth >= beta) return static_eval - 85 * depth;
@@ -117,7 +119,7 @@ public class LiteBlueBot6 : IChessBot
             if (do_null && depth >= 2)
             {
                 board.TrySkipTurn();
-                int score = -Search(depth - 3 - depth / 6, ply + 1, -beta, 1 - beta, false);
+                int score = -Search(board, depth - 3 - depth / 6, ply + 1, -beta, 1 - beta, false);
                 board.UndoSkipTurn();
                 if (score >= beta) return score;
             }
@@ -144,6 +146,10 @@ public class LiteBlueBot6 : IChessBot
             // Check if time is expired
             if (timer.MillisecondsElapsedThisTurn > time_limit) return 100000;
 
+            // Debug keep track on nodes and qnodes searching
+            if (depth > 0) Nodes++;
+            else QNodes++;
+            
             Move move = moves[i];
 
             bool tactical = pv_node || move.IsCapture || move.IsPromotion || in_check;
@@ -153,7 +159,7 @@ public class LiteBlueBot6 : IChessBot
             board.MakeMove(move);
 
             // Using local method to simplify multiple similar calls to Negamax
-            int Search(int next_alpha, int R = 1) => -this.Search(depth - R, ply + 1, -next_alpha, -alpha, do_null);
+            int Search(int next_alpha, int R = 1) => -this.Search(board, depth - R, ply + 1, -next_alpha, -alpha, do_null);
             // PVS + LMR (Saves tokens, I will not explain, ask Tyrant)
             if (i == 0 || q_search) new_score = Search(beta);
             else if ((new_score = tactical || i < 8 || depth < 3 ? alpha + 1 : Search(alpha + 1, 3)) > alpha &&
@@ -243,7 +249,7 @@ public class LiteBlueBot6 : IChessBot
     // TODO: King Safety
     // TODO: Pawn Structure
     // TODO: Mobility
-    private int Eval()
+    private int Eval(Board board)
     {
         int middlegame = 0, endgame = 0, gamephase = 0, sideToMove = 2;
         for (; --sideToMove >= 0;)

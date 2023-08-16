@@ -1,4 +1,4 @@
-#define UCI
+// #define UCI
 
 // #define TESTING
 // #define SLOW
@@ -6,6 +6,8 @@
 using ChessChallenge.API;
 using System;
 using System.Linq;
+using System.Numerics;
+using System.Collections.Generic;
 
 public class LiteBlueBot4 : IChessBot
 {

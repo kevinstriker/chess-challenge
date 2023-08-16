@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using ChessChallenge.API;
+using Raylib_cs;
 
 /*
  * So here we go, 8 august, let's start from scratch, let's name this project NebulaAI
@@ -14,8 +15,8 @@ public class MyBot : IChessBot
     public int QNodes;
 
     // Transposition table (size is 2 ^ 22 = 4,194,304 entries)
-    private record struct TtEntry(ulong Key, int Score, int Depth, int Flag, Move Move);
-    private TtEntry[] _tt = new TtEntry[0x400000];
+    public record struct TtEntry(ulong Key, int Score, int Depth, int Flag, Move Move);
+    public TtEntry[] _tt = new TtEntry[0x400000];
 
     // History Heuristics 
     public int[,,] HistoryHeuristics;
@@ -62,10 +63,10 @@ public class MyBot : IChessBot
             bestScore = -100000,
             currentTurn = board.IsWhiteToMove ? 1 : 0;
         bool root = ply == 0,
-            inCheck = board.IsInCheck(),
-            qSearch = depth < 1;
+            qSearch = depth < 1,
+            inCheck = board.IsInCheck();
         Move bestMove = Move.NullMove;
-
+        
         // Check for repetition since TT doesn't know that and we don't want draws when we can win
         if (!root && board.IsRepeatedPosition()) return 0; // TODO: maybe use here -100;
 
@@ -81,7 +82,7 @@ public class MyBot : IChessBot
             if (ttEntry.Flag == 1) alpha = Math.Max(alpha, ttEntry.Score);
             if (ttEntry.Flag == 3) beta = Math.Min(beta, ttEntry.Score);
 
-            // Beta cutoff when there is an established better branch that resulted in the alpha score
+            // Beta cutoff, move is too good, opposing player has a better option (beta) and won't play this subtree
             if (beta <= alpha) return ttEntry.Score;
         }
 
@@ -107,13 +108,13 @@ public class MyBot : IChessBot
         // Move Ordering
         var moves = board.GetLegalMoves(qSearch).OrderByDescending(
             move =>
-                // Best move at transposition
+                // We found a transposition, try it's best move first, works great with Iterative deepening
                 move == ttEntry.Move ? 1000000 :
-                // MVV-LVA
+                // Capturing a piece with more value is often good
                 move.IsCapture ? 100000 * (int)move.CapturePieceType - (int)move.MovePieceType :
-                // Promotions
+                // Promotions are generally good since you upgrade a pawn to a queen as example
                 move.IsPromotion ? 100000 :
-                // History Heuristics
+                // Previously caused beta cutoff can cause another which speeds up search
                 HistoryHeuristics[currentTurn, (int)move.MovePieceType, move.TargetSquare.Index]
         ).ToArray();
 
@@ -140,14 +141,14 @@ public class MyBot : IChessBot
                 // Beta cutoff when there is an established better branch that resulted in the alpha score
                 if (beta <= alpha)
                 {
-                    if (!qSearch && !move.IsCapture) 
+                    if (!move.IsCapture) 
                         HistoryHeuristics[currentTurn, (int)move.MovePieceType, move.TargetSquare.Index] += depth * depth;
                     break;
                 }
             }
         }
 
-        // Efficient way to check for checkmate which is faster (nps)
+        // Performant way to check for checkmate
         if (!qSearch && moves.Length == 0) return board.IsInCheck() ? -100000 + ply : 0;
 
         // Decide the current search bounds so we're able to properly check if we're allowed to cutoff later
@@ -176,15 +177,14 @@ public class MyBot : IChessBot
         for (int depth = 1; depth < 50; depth++)
         {
             int score = Search(board, depth, 0, -100000, 100000, true);
-
+            
             DebugHelper.LogDepth(SearchTimer, depth, score, this);
 
             if (SearchTimer.MillisecondsElapsedThisTurn > SearchTimer.MillisecondsRemaining / 40) break;
         }
-
         Console.WriteLine();
-
-        return BestMove.IsNull ? board.GetLegalMoves()[0] : BestMove;
+        
+        return BestMove;
     }
 
     // 

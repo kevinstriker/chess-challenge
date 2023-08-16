@@ -176,14 +176,10 @@ public class MinusOneBot : IChessBot
         for (int depth = 1; depth < 50; depth++)
         {
             int score = Search(board, depth, 0, -100000, 100000, true);
-
-            DebugHelper.LogDepth(SearchTimer, depth, score, this);
-
+            
             if (SearchTimer.MillisecondsElapsedThisTurn > SearchTimer.MillisecondsRemaining / 40) break;
         }
-
-        Console.WriteLine();
-
+        
         return BestMove.IsNull ? board.GetLegalMoves()[0] : BestMove;
     }
 
