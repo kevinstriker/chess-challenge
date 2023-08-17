@@ -181,7 +181,8 @@ public class MyBot : IChessBot
         Timer = timer;
         Board = board;
         
-        TimeLimit = Timer.MillisecondsRemaining / 30;
+        // Base is 1500 ms, or less
+        TimeLimit = Math.Min(timer.MillisecondsRemaining / 30, 1500);
 
         // Initialise HH every time we're trying to find a move with Iterative Deepening
         HistoryHeuristics = new int[2, 7, 64];

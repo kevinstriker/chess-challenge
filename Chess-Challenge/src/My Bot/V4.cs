@@ -192,8 +192,7 @@ public class V4 : IChessBot
         {
             Pvs(depth, 0, -100000, 100000, true);
             
-            if (_timer.MillisecondsElapsedThisTurn > _timeLimit
-                || _timer.MillisecondsElapsedThisTurn * 2 > _timeLimit) break;
+            if (_timer.MillisecondsElapsedThisTurn * 2 > _timeLimit) break;
         }
         
         return _bestMove;
