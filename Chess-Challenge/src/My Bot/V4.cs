@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using ChessChallenge.API;
 
@@ -9,30 +9,27 @@ using ChessChallenge.API;
  * V3: Reversed futility pruning, futility pruning and from NegaMax to PVS
  * V4: Killer moves, check extensions, razoring, time management
  */
-public class MyBot : IChessBot
+public class V4 : IChessBot
 {
-    public int Nodes;
-    public int QNodes;
-    
     // Transposition Table: keep track of positions that were already calculated and possibly re-use information
     record struct TtEntry(ulong Key, int Score, int Depth, int Flag, Move BestMove);
     TtEntry[] _tt = new TtEntry[0x400000];
 
     // History Heuristics: keep track on great moves that caused a cutoff to retry them
     // Based on a lookup by color, piece type and target square
-    public int[,,] HistoryHeuristics;
+    int[,,] _historyHeuristics;
     
     // Killer moves: keep track on great moves that caused a cutoff to retry them
     // Based on a lookup by depth
     Move[] _killers = new Move[256];
-    
+
     // Globals
-    public Timer Timer;
-    public Board Board;
-    public int TimeLimit;
+    Timer _timer;
+    Board _board;
+    int _timeLimit;
 
     // Keep track on the best move
-    public Move BestMove;
+    Move _bestMove;
 
     public int Pvs(int depth, int plyFromRoot, int alpha, int beta, bool canNullMove)
     {
@@ -40,16 +37,16 @@ public class MyBot : IChessBot
         bool notRoot = plyFromRoot++ > 0,
             canPrune = false,
             isPv = beta - alpha > 1,
-            inCheck = Board.IsInCheck();
+            inCheck = _board.IsInCheck();
         int alphaStart = alpha,
             bestEval = -100_000,
             movesSearched = 0;
         
         // Check for repetition since TT doesn't know that and we don't want draws when we can win
-        if (notRoot && Board.IsRepeatedPosition() || plyFromRoot > 50) return 0;
+        if (notRoot && _board.IsRepeatedPosition() || plyFromRoot > 50) return 0;
 
         // Try to find the board position in the tt
-        ulong zobristKey = Board.ZobristKey;
+        ulong zobristKey = _board.ZobristKey;
         TtEntry ttEntry = _tt[zobristKey % 0x400000]; // Todo: deconstruct to save tokens
 
         // When we find the transposition check if we can use it to narrow our alpha beta bounds
@@ -90,10 +87,10 @@ public class MyBot : IChessBot
             // Null move pruning on pre-frontier nodes and higher
             if (depth > 1)
             {
-                Board.ForceSkipTurn();
+                _board.ForceSkipTurn();
                 // depth - (1 + R(eduction)), using the classic 2 for reduction
                 int nullMoveEval = -Pvs( depth - 3, plyFromRoot, -beta, 1 - beta, false);
-                Board.UndoSkipTurn();
+                _board.UndoSkipTurn();
                 // Prune branch when the side who got a free move can't even improve
                 if (beta <= nullMoveEval) return nullMoveEval;
             }
@@ -103,19 +100,19 @@ public class MyBot : IChessBot
             if (depth < 4)
                 canPrune = staticEval + depth * 100 <= alpha;
             
-            // Classic razoring in pre-pre-frontier node by x margin, who knows
+            // Classic razoring in pre-pre-frontier node by rook margin, who knows
             if (depth == 3 && staticEval + 500 <= alpha)
                 depth--;
         }
 
         // Move Ordering
-        var moves = Board.GetLegalMoves(inQSearch).OrderByDescending(
+        var moves = _board.GetLegalMoves(inQSearch).OrderByDescending(
             move =>
                 move == ttEntry.BestMove ? 9_000_000 :
                 move.IsCapture ? 1_000_000 * (int)move.CapturePieceType - (int)move.MovePieceType :
                 move.IsPromotion ? 1_000_000 :
                 _killers[plyFromRoot] == move ? 900_000 :
-                HistoryHeuristics[plyFromRoot & 1, (int)move.MovePieceType, move.TargetSquare.Index]
+                _historyHeuristics[plyFromRoot & 1, (int)move.MovePieceType, move.TargetSquare.Index]
         ).ToArray();
         
         Move bestMove = default;
@@ -127,7 +124,7 @@ public class MyBot : IChessBot
             // Only futility prune on non tactical nodes and when we've fully searched 1 line to prevent pruning everything
             if (canPrune && !tactical && movesSearched > 0) continue;
 
-            Board.MakeMove(move);
+            _board.MakeMove(move);
             
             // Principle Variation Search: search our first moves fully with normal bounds
             // After we're using a small window search (performant) to know if it has potential
@@ -139,11 +136,11 @@ public class MyBot : IChessBot
             if (!isFullSearch && score > alpha)
                 score = -Pvs(depth - 1, plyFromRoot, -beta, -alpha, canNullMove);
             
-            Board.UndoMove(move);
+            _board.UndoMove(move);
 
             if (score > bestEval)
             {
-                if (!notRoot) BestMove = move;
+                if (!notRoot) _bestMove = move;
                 bestMove = move;
                 bestEval = score;
                 alpha = Math.Max(alpha, bestEval);
@@ -153,7 +150,7 @@ public class MyBot : IChessBot
                 {
                     if (!move.IsCapture)
                     {                       
-                        HistoryHeuristics[plyFromRoot & 1, (int)move.MovePieceType, move.TargetSquare.Index] += depth * depth;
+                        _historyHeuristics[plyFromRoot & 1, (int)move.MovePieceType, move.TargetSquare.Index] += depth * depth;
                         _killers[plyFromRoot] = move;
                     }
                     break;
@@ -161,7 +158,7 @@ public class MyBot : IChessBot
             }
 
             // Out of time break out of the loop
-            if (Timer.MillisecondsElapsedThisTurn > TimeLimit) return 100_000;
+            if (_timer.MillisecondsElapsedThisTurn > _timeLimit) return 100_000;
         }
 
         // Performant way to check for stalemate and checkmate
@@ -178,26 +175,28 @@ public class MyBot : IChessBot
 
     public Move Think(Board board, Timer timer)
     {
-        Timer = timer;
-        Board = board;
-        
-        TimeLimit = Timer.MillisecondsRemaining / 30;
+        _timer = timer;
+        _board = board;
+
+        // Base is 1500 ms, or less
+        _timeLimit = Math.Min(timer.MillisecondsRemaining / 30, 1500);
 
         // Initialise HH every time we're trying to find a move with Iterative Deepening
-        HistoryHeuristics = new int[2, 7, 64];
+        _historyHeuristics = new int[2, 7, 64];
 
         // Reset to prevent lingering previous moves
-        BestMove = default;
+        _bestMove = default;
 
         // Iterative deepening
         for (int depth = 1; depth < 50; depth++)
         {
             Pvs(depth, 0, -100000, 100000, true);
             
-            if (Timer.MillisecondsElapsedThisTurn * 2 > TimeLimit) break;
+            if (_timer.MillisecondsElapsedThisTurn > _timeLimit
+                || _timer.MillisecondsElapsedThisTurn * 2 > _timeLimit) break;
         }
         
-        return BestMove;
+        return _bestMove;
     }
 
     // 
@@ -245,7 +244,7 @@ public class MyBot : IChessBot
         for (; --sideToMove >= 0;)
         {
             for (int piece = -1; ++piece < 6;)
-            for (ulong mask = Board.GetPieceBitboard((PieceType)piece + 1, sideToMove > 0); mask != 0;)
+            for (ulong mask = _board.GetPieceBitboard((PieceType)piece + 1, sideToMove > 0); mask != 0;)
             {
                 // A number between 0 to 63 that indicates which square the piece is on, flip for black
                 int squareIndex = BitboardHelper.ClearAndGetIndexOfLSB(ref mask) ^ 56 * sideToMove;
@@ -265,11 +264,11 @@ public class MyBot : IChessBot
         }
 
         // Tapered evaluation since our goals towards endgame shifts
-        return (mg * phase + eg * (24 - phase)) / 24 * (Board.IsWhiteToMove ? 1 : -1);
+        return (mg * phase + eg * (24 - phase)) / 24 * (_board.IsWhiteToMove ? 1 : -1);
     }
 
     // Constructor and wizardry to unpack the bitmap piece square tables and bake the piece values into the values
-    public MyBot()
+    public V4()
     {
         _pst = _packedPst.Select(packedTable =>
         {

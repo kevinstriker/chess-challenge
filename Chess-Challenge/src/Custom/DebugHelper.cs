@@ -60,7 +60,7 @@ public static class DebugHelper
     // My Bot version
     public static void LogDepth(Timer timer, int depth, int score, MyBot bot)
     {
-        LogDepth(bot.GetType().ToString(), timer, depth, score, bot.Nodes, bot.QNodes, bot.BestMove);
+        //LogDepth(bot.GetType().ToString(), timer, depth, score, bot.Nodes, bot.QNodes, bot.BestMove);
     }
     
     

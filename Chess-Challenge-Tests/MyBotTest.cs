@@ -171,7 +171,7 @@ public class MyBotTest
     [Test]
     public void TestPuzzle9()
     {
-        // Bishop shouldn't go for pawn advantage since it means you get wayyy behind
+        // Bishop shouldn't go for pawn advantage but for trading bishops, otherwise you get wayyy behind
         _testBoard = Board.CreateBoardFromFEN("r1b1k2r/pp2nppp/2pp1q2/5P2/2BbP3/2N1B3/PP3QPP/R4RK1 b kq - 1 18");
         _bot.Board = _testBoard;
         
