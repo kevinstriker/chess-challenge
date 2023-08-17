@@ -1,0 +1,8 @@
+
+# MyBot vs LiteBlueBot 5
+Score of MyBot vs LiteBlueBot5: 57 - 30 - 49  [0.599] 136
+
+# V3 vs V5
+Score of V3 vs LiteBlueBot5: 20 - 23 - 20  [0.476] 63
+
+

@@ -39,6 +39,8 @@ namespace ChessChallenge.Application
             LiteBlueBot4,
             LiteBlueBot5,
             LiteBlueBot6,
+            Tyrant6Bot,
+            Tyrant7Bot,
             StockFishBot
         }
 
@@ -64,6 +66,8 @@ namespace ChessChallenge.Application
                 PlayerType.LiteBlueBot4 => new LiteBlueBot4(),
                 PlayerType.LiteBlueBot5 => new LiteBlueBot5(),
                 PlayerType.LiteBlueBot6 => new LiteBlueBot6(),
+                PlayerType.Tyrant6Bot => new Tyrant6Bot(),
+                PlayerType.Tyrant7Bot => new Tyrant7Bot(),
                 PlayerType.StockFishBot => new StockFishBot(),
                 _ => null
             };
@@ -268,6 +272,8 @@ namespace ChessChallenge.Application
                 PlayerType.LiteBlueBot4 => new ChessPlayer(new LiteBlueBot4(), type, GameDurationMilliseconds),
                 PlayerType.LiteBlueBot5 => new ChessPlayer(new LiteBlueBot5(), type, GameDurationMilliseconds),
                 PlayerType.LiteBlueBot6 => new ChessPlayer(new LiteBlueBot6(), type, GameDurationMilliseconds),
+                PlayerType.Tyrant6Bot => new ChessPlayer(new Tyrant6Bot(), type, GameDurationMilliseconds),
+                PlayerType.Tyrant7Bot => new ChessPlayer(new Tyrant7Bot(), type, GameDurationMilliseconds),
                 PlayerType.StockFishBot => new ChessPlayer(new StockFishBot(), type, GameDurationMilliseconds),
                 _ => new ChessPlayer(new HumanPlayer(boardUI), type)
             };

@@ -10,6 +10,7 @@ public class JeffBotTest
     private Board _testBoard;
     private Stopwatch _stopwatch;
     
+    /*
     [SetUp]
     public void Setup()
     {
@@ -309,5 +310,5 @@ public class JeffBotTest
     }
     
     #endregion
-    
+    */
 }

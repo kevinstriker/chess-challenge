@@ -1,3 +1,5 @@
+#define DEBUG
+
 using ChessChallenge.API;
 using System;
 using System.Linq;
@@ -5,7 +7,7 @@ using System.Linq;
 // TODO: More token saves
 // TODO: Fully test promotion ordering
 
-public class TyrantLatestBot : IChessBot
+public class Tyrant7Bot : IChessBot
 {
     private int searchMaxTime;
     private Timer searchTimer;
@@ -15,9 +17,18 @@ public class TyrantLatestBot : IChessBot
 
     Board board;
     Move rootMove;
-    
+
+#if DEBUG
+    long nodes;
+#endif
+
     public Move Think(Board newBoard, Timer timer)
     {
+#if DEBUG
+        Console.WriteLine();
+        nodes = 0;
+#endif
+
         // Cache the board to save precious tokens
         board = newBoard;
 
@@ -46,9 +57,16 @@ public class TyrantLatestBot : IChessBot
             else
             {
 #if DEBUG
+                string evalWithMate = eval.ToString();
+                if (Math.Abs(eval) > 50000)
+                {
+                    evalWithMate = eval < 0 ? "-" : "";
+                    evalWithMate += $"M{Math.Ceiling((99999 - (double)eval) / 2)}";
+                }
+
                 Console.WriteLine("Info: depth: {0, 2} || eval: {1, 6} || nodes: {2, 9} || nps: {3, 8} || time: {4, 5}ms || best move: {5}{6}",
                     depth,
-                    eval,
+                    evalWithMate,
                     nodes,
                     1000 * nodes / (timer.MillisecondsElapsedThisTurn + 1),
                     timer.MillisecondsElapsedThisTurn,
@@ -298,7 +316,7 @@ public class TyrantLatestBot : IChessBot
 
     private readonly int[][] UnpackedPestoTables;
 
-    public TyrantLatestBot()
+    public Tyrant7Bot()
     {
         UnpackedPestoTables = PackedPestoTables.Select(packedTable =>
         {
@@ -339,9 +357,9 @@ public class TyrantLatestBot : IChessBot
     // enum Flag
     // {
     //     0 = Invalid,
-    //     1 = Exact
-    //     2 = Upperbound
-    //     3 = Lowerbound,
+    //     1 = Exact,
+    //     2 = Upperbound,
+    //     3 = Lowerbound
     // }
     private record struct TTEntry(ulong Hash, Move BestMove, int Score, int Depth, int Flag);
 
