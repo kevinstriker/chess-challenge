@@ -4,20 +4,18 @@ using Timer = ChessChallenge.API.Timer;
 
 namespace Chess_Challenge_Tests;
 
-public class MyBotTest
+public class JeffBotTest
 {
-    private MyBot _bot;
+    private JeffBot _bot;
     private Board _testBoard;
     private Stopwatch _stopwatch;
     
     [SetUp]
     public void Setup()
     {
-        _bot = new MyBot
+        _bot = new JeffBot
         {
-            Timer = new Timer(60000000, 60000000, 0),
-            TimeLimit = 1000000000,
-            HistoryHeuristics = new int[2, 7, 64],
+            Timer = new Timer(60000000, 60000000, 0)
         };
         _stopwatch = Stopwatch.StartNew();
     }
@@ -33,7 +31,7 @@ public class MyBotTest
         
         for (int depth = 1; depth <= 6; depth++)
         {
-            int score = _bot.Pvs( depth, 0, -100000, 100000, true);
+            int score = _bot.Search(-100000, 100000, depth, 0);
             LogAll(depth, score);
         }
 
@@ -51,7 +49,7 @@ public class MyBotTest
 
         for (int depth = 1; depth <= 8; depth++)
         {
-            int score = _bot.Pvs( depth, 0, -100000, 100000, true);
+            int score = _bot.Search(-100000, 100000, depth, 0);
             LogAll(depth, score);
         }
 
@@ -69,7 +67,7 @@ public class MyBotTest
         
         for (int depth = 1; depth <= 8; depth++)
         {
-            int score = _bot.Pvs( depth, 0, -100000, 100000, true);
+            int score = _bot.Search(-100000, 100000, depth, 0);
             LogAll(depth, score);
         }
 
@@ -87,7 +85,7 @@ public class MyBotTest
         
         for (int depth = 1; depth <= 8; depth++)
         {
-            int score = _bot.Pvs( depth, 0, -100000, 100000, true);
+            int score = _bot.Search(-100000, 100000, depth, 0);
             LogAll(depth, score);
         }
 
@@ -105,7 +103,7 @@ public class MyBotTest
         
         for (int depth = 1; depth <= 10; depth++)
         {
-            int score = _bot.Pvs( depth, 0, -100000, 100000, true);
+            int score = _bot.Search(-100000, 100000, depth, 0);
             LogAll(depth, score);
         }
 
@@ -123,7 +121,7 @@ public class MyBotTest
         
         for (int depth = 1; depth <= 8; depth++)
         {
-            int score = _bot.Pvs( depth, 0, -100000, 100000, true);
+            int score = _bot.Search(-100000, 100000, depth, 0);
             LogAll(depth, score);
         }
 
@@ -141,7 +139,7 @@ public class MyBotTest
         
         for (int depth = 1; depth <= 6; depth++)
         {
-            int score = _bot.Pvs( depth, 0, -100000, 100000, true);
+            int score = _bot.Search(-100000, 100000, depth, 0);
             LogAll(depth, score);
         }
 
@@ -159,7 +157,7 @@ public class MyBotTest
         
         for (int depth = 1; depth <= 9; depth++)
         {
-            int score = _bot.Pvs( depth, 0, -100000, 100000, true);
+            int score = _bot.Search(-100000, 100000, depth, 0);
             LogAll(depth, score);
         }
 
@@ -177,7 +175,7 @@ public class MyBotTest
         
         for (int depth = 1; depth <= 9; depth++)
         {
-            int score = _bot.Pvs( depth, 0, -100000, 100000, true);
+            int score = _bot.Search(-100000, 100000, depth, 0);
             LogAll(depth, score);
         }
 
@@ -195,7 +193,7 @@ public class MyBotTest
         
         for (int depth = 1; depth <= 11; depth++)
         {
-            int score = _bot.Pvs( depth, 0, -100000, 100000, true);
+            int score = _bot.Search(-100000, 100000, depth, 0);
             LogAll(depth, score);
         }
 
@@ -212,7 +210,7 @@ public class MyBotTest
             
         for (int depth = 1; depth <= 13; depth++)
         {
-            int score = _bot.Pvs( depth, 0, -100000, 100000, true);
+            int score = _bot.Search(-100000, 100000, depth, 0);
             LogAll(depth, score);
         }
         Assert.That(_bot.BestMove.MovePieceType, Is.EqualTo(PieceType.Rook));
@@ -221,21 +219,7 @@ public class MyBotTest
     }
     
     #endregion
-
-    #region Move ordering
-
-    [Test]
-    public void TestMoveOrdering()
-    {
-        _testBoard = Board.CreateBoardFromFEN("2b1kb1r/P1pppppp/4nn2/1N4q1/2B2B2/4PN1P/1PPPQPP1/R3K2R w KQk - 0 1");
-        _bot.Board = _testBoard;
-        
-        int score = _bot.Pvs( 1, 0, -100000, 100000, true);
-        
-        LogAll(1, score);
-    }
-
-    #endregion
+    
 
     #region Checkmate
     
@@ -247,7 +231,7 @@ public class MyBotTest
         
         for (int depth = 1; depth <= 6; depth++)
         {
-            int score = _bot.Pvs( depth, 0, -100000, 100000, true);
+            int score = _bot.Search(-100000, 100000, depth, 0);
             LogAll(depth, score);
         }
 
@@ -264,7 +248,7 @@ public class MyBotTest
         
         for (int depth = 1; depth <= 8; depth++)
         {
-            int score = _bot.Pvs(depth, 0, -100000, 100000, true);
+            int score = _bot.Search(-100000, 100000, depth, 0);
             LogAll(depth, score);
         }
 

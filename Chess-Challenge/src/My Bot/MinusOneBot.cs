@@ -2,185 +2,180 @@ using System;
 using System.Linq;
 using ChessChallenge.API;
 
-/*
- * So here we go, 8 august, let's start from scratch, let's name this project NebulaAI
- * V1: NegaMax, Q Search, Move ordering, Piece Square Tables and Transposition Tables
- * V2: Null move pruning, History heuristics
- */
 public class MinusOneBot : IChessBot
 {
-    // Debug purpose
-    public int Nodes;
-    public int QNodes;
-
     // Transposition table (size is 2 ^ 22 = 4,194,304 entries)
-    private record struct TtEntry(ulong Key, int Score, int Depth, int Flag, Move Move);
+    private record struct TtEntry(ulong Key, int Score, int Depth, int Flag, Move BestMove);
     private TtEntry[] _tt = new TtEntry[0x400000];
 
     // History Heuristics 
     public int[,,] HistoryHeuristics;
 
     // Globals
-    public Timer SearchTimer;
+    public Timer _timer;
+    public Board _board;
+    public int _timeLimit;
 
     // Keep track on the best move
     public Move BestMove;
 
-    private int Evaluate(Board board)
-    {
-        int mg = 0, eg = 0, phase = 0, sideToMove = 2;
-        for (; --sideToMove >= 0;)
-        {
-            for (int piece = -1; ++piece < 6;)
-            for (ulong mask = board.GetPieceBitboard((PieceType)piece + 1, sideToMove > 0); mask != 0;)
-            {
-                // A number between 0 to 63 that indicates which square the piece is on, flip for black
-                int squareIndex = BitboardHelper.ClearAndGetIndexOfLSB(ref mask) ^ 56 * sideToMove;
-
-                // Piece values are baked into the pst (see constructor of the bot)
-                mg += _pst[squareIndex][piece];
-                eg += _pst[squareIndex][piece + 6];
-
-                // The less pieces, the more we bend towards our endgame strategy
-                phase += _phaseWeight[piece];
-            }
-
-            // Flip score for optimised token count (always white perspective due to double flip)
-            // Eg. White eval = 2300 -> flip -> -2300 -> black eval = 2000 -> -300 -> flip -> 300 
-            mg = -mg;
-            eg = -eg;
-        }
-
-        // Tapered evaluation since our goals towards endgame shifts
-        return (mg * phase + eg * (24 - phase)) / 24 * (board.IsWhiteToMove ? 1 : -1);
-    }
-
-    public int Search(Board board, int depth, int ply, int alpha, int beta, bool canNullMove = true)
+    public int Pvs(int depth, int plyFromRoot, int alpha, int beta, bool canNullMove)
     {
         // Search variables
         int alphaStart = alpha,
-            bestScore = -100000,
-            currentTurn = board.IsWhiteToMove ? 1 : 0;
-        bool root = ply == 0,
-            inCheck = board.IsInCheck(),
-            qSearch = depth < 1;
-        Move bestMove = Move.NullMove;
+            bestEval = -100_000,
+            movesSearched = 0,
+            currentTurn = _board.IsWhiteToMove ? 1 : 0;
+        bool notRoot = plyFromRoot++ > 0,
+            inQSearch = depth < 1,
+            canFutilityPrune = false,
+            inCheck = _board.IsInCheck();
 
+        Move bestMove = default;
+        
         // Check for repetition since TT doesn't know that and we don't want draws when we can win
-        if (!root && board.IsRepeatedPosition()) return 0; // TODO: maybe use here -100;
+        if (notRoot && _board.IsRepeatedPosition() || plyFromRoot > 50) return 0;
 
         // Try to find the board position in the tt
-        ulong key = board.ZobristKey;
+        ulong key = _board.ZobristKey;
         TtEntry ttEntry = _tt[key % 0x400000]; // Todo: deconstruct to save tokens
 
         // When we find the transposition check if we can use it to narrow our alpha beta bounds
-        if (!root && ttEntry.Key == key && ttEntry.Depth >= depth)
+        if (notRoot && ttEntry.Key == key && ttEntry.Depth >= depth)
         {
             // 1 = lower bound; 2 = exact; 3 = upper bound
             if (ttEntry.Flag == 2) return ttEntry.Score;
             if (ttEntry.Flag == 1) alpha = Math.Max(alpha, ttEntry.Score);
             if (ttEntry.Flag == 3) beta = Math.Min(beta, ttEntry.Score);
 
-            // Beta cutoff when there is an established better branch that resulted in the alpha score
+            // Beta cutoff, move is too good, opposing player has a better option (beta) and won't play this subtree
             if (beta <= alpha) return ttEntry.Score;
         }
 
         // Search quiescence position to prevent horizon effect of depth first search
-        if (qSearch)
+        if (inQSearch)
         {
-            bestScore = Evaluate(board);
-            if (beta <= bestScore) return bestScore;
-            alpha = Math.Max(alpha, bestScore);
+            // Re-use of best bestScore allowed since Q search is an extension of the search tree
+            bestEval = Evaluate();
+            if (beta <= bestEval) return bestEval;
+            alpha = Math.Max(alpha, bestEval);
         }
-        // Null move pruning
-        else if (canNullMove && !inCheck)
+        // No pruning in quiescence search, not when we're zero windowing and not when in check (unstable position)
+        else if (!inCheck)
         {
-            board.ForceSkipTurn();
-            // Depth - (1 + R, let's use 2 since everyone online seems to agree with that)
-            int nullMoveEval = -Search(board, depth - 3, ply + 1, -beta, -beta + 1, false);
-            board.UndoSkipTurn();
+            int staticEval = Evaluate();
 
-            // Prune branch when the side who got a free move can't even improve
-            if (beta <= nullMoveEval) return nullMoveEval;
+            // Reverse futility pruning: if our position is much better than beta and even if we start losing material 
+            // every depth from now and we'd still be above beta, cut it off.
+            if (depth < 4 && beta < 50_000 && beta <= staticEval - 100 * depth)
+                return staticEval;
+
+            // Null move pruning on pre-frontier nodes and higher
+            if (depth > 1)
+            {
+                _board.ForceSkipTurn();
+                // depth - (1 + Reduction), using the classic 2 reduction
+                int nullMoveEval = -Pvs( depth - 3, plyFromRoot, -beta, 1 - beta, false);
+                _board.UndoSkipTurn();
+                // Prune branch when the side who got a free move can't even improve
+                if (beta <= nullMoveEval) return nullMoveEval;
+            }
+
+            // Futility pruning: if our position is so bad that even if we improve a lot
+            // We can't improve alpha, so we'll give up on this branch
+            if (depth <= 6)
+                canFutilityPrune = staticEval + depth * 100 <= alpha;
         }
 
         // Move Ordering
-        var moves = board.GetLegalMoves(qSearch).OrderByDescending(
+        var moves = _board.GetLegalMoves(inQSearch).OrderByDescending(
             move =>
-                // Best move at transposition
-                move == ttEntry.Move ? 1000000 :
-                // MVV-LVA
-                move.IsCapture ? 100000 * (int)move.CapturePieceType - (int)move.MovePieceType :
-                // Promotions
-                move.IsPromotion ? 100000 :
-                // History Heuristics
+                // We found a transposition, try it's best move first, works great with Iterative deepening
+                move == ttEntry.BestMove ? 1_000_000 :
+                // Capturing a piece with more value is often good
+                move.IsCapture ? 100_000 * (int)move.CapturePieceType - (int)move.MovePieceType :
+                // Promotions are generally good since you upgrade a pawn to a queen as example
+                move.IsPromotion ? 100_000 :
+                // Previously caused beta cutoff can cause another which speeds up search
                 HistoryHeuristics[currentTurn, (int)move.MovePieceType, move.TargetSquare.Index]
         ).ToArray();
 
         foreach (Move move in moves)
         {
-            if (SearchTimer.MillisecondsElapsedThisTurn > SearchTimer.MillisecondsRemaining / 40) return 100000;
+            // On certain nodes (tactical nodes), static eval, even with a wide margin, isn't safe enough to exclude
+            bool tactical = !move.IsCapture && !move.IsPromotion;
 
-            // Debug keep track on nodes and qnodes searching
-            if (depth > 0) Nodes++;
-            else QNodes++;
+            // Only futility prune on non tactical nodes and when we've fully searched 1 line to prevent pruning everything
+            if (canFutilityPrune && !tactical && movesSearched > 0) continue;
 
-            board.MakeMove(move);
-            int score = -Search(board, depth - 1, ply + 1, -beta, -alpha);
-            board.UndoMove(move);
+            _board.MakeMove(move);
+            
+            // Principle Variation Search: search our first moves fully with normal bounds
+            // After we're using a small window search (performant) to know if it has potential
+            bool isFullSearch = inQSearch || movesSearched++ == 0;
+            int score = -Pvs(depth - 1, plyFromRoot, isFullSearch ? -beta : -alpha - 1, -alpha,
+                !isFullSearch && canNullMove);
+            
+            // If the branch has potential, if it can improve alpha, we'll need to fully search it for exact score
+            if (!isFullSearch && score > alpha)
+                score = -Pvs(depth - 1, plyFromRoot, -beta, -alpha, canNullMove);
+            
+            _board.UndoMove(move);
 
-            if (score > bestScore)
+            if (score > bestEval)
             {
-                if (ply == 0) BestMove = move;
-
+                if (!notRoot) BestMove = move;
                 bestMove = move;
-                bestScore = score;
-                alpha = Math.Max(alpha, bestScore);
-
-                // Beta cutoff when there is an established better branch that resulted in the alpha score
+                bestEval = score;
+                alpha = Math.Max(alpha, bestEval);
+                
+                // Beta cutoff, move is too good, opposing player has a better option (beta) and won't play this subtree
                 if (beta <= alpha)
                 {
-                    if (!qSearch && !move.IsCapture) 
+                    if (!move.IsCapture)
                         HistoryHeuristics[currentTurn, (int)move.MovePieceType, move.TargetSquare.Index] += depth * depth;
                     break;
                 }
             }
+
+            // Out of time break out of the loop
+            if (_timer.MillisecondsElapsedThisTurn > _timeLimit) return 100_000;
         }
 
-        // Efficient way to check for checkmate which is faster (nps)
-        if (!qSearch && moves.Length == 0) return board.IsInCheck() ? -100000 + ply : 0;
+        // Performant way to check for stalemate and checkmate
+        if (!inQSearch && moves.Length == 0) return inCheck ? plyFromRoot - 100_000 : 0;
 
         // Decide the current search bounds so we're able to properly check if we're allowed to cutoff later
-        int flag = bestScore <= alphaStart ? 3 : bestScore >= beta ? 1 : 2;
+        int flag = bestEval <= alphaStart ? 3 : bestEval >= beta ? 1 : 2;
 
         // Store the position and it's eval to the transposition table for fast lookup when same position is found twice
-        _tt[key % 0x400000] = new TtEntry(key, bestScore, depth, flag, bestMove);
+        _tt[key % 0x400000] = new TtEntry(key, bestEval, depth, flag, bestMove);
 
-        return bestScore;
+        return bestEval;
     }
 
     public Move Think(Board board, Timer timer)
     {
-        Nodes = 0;
-        QNodes = 0;
+        _timer = timer;
+        _board = board;
 
-        SearchTimer = timer;
+        _timeLimit = timer.MillisecondsRemaining / 30;
 
-        // History heuristics
+        // Initialise HH every time we're trying to find a move with Iterative Deepening
         HistoryHeuristics = new int[2, 7, 64];
 
         // Reset to prevent lingering previous moves
-        BestMove = Move.NullMove;
+        BestMove = default;
 
         // Iterative deepening
         for (int depth = 1; depth < 50; depth++)
         {
-            int score = Search(board, depth, 0, -100000, 100000, true);
+            Pvs(depth, 0, -100000, 100000, true);
             
-            if (SearchTimer.MillisecondsElapsedThisTurn > SearchTimer.MillisecondsRemaining / 40) break;
+            if (_timer.MillisecondsElapsedThisTurn > _timeLimit) break;
         }
         
-        return BestMove.IsNull ? board.GetLegalMoves()[0] : BestMove;
+        return BestMove;
     }
 
     // 
@@ -221,6 +216,35 @@ public class MinusOneBot : IChessBot
     };
 
     private readonly int[][] _pst;
+
+    private int Evaluate()
+    {
+        int mg = 0, eg = 0, phase = 0, sideToMove = 2;
+        for (; --sideToMove >= 0;)
+        {
+            for (int piece = -1; ++piece < 6;)
+            for (ulong mask = _board.GetPieceBitboard((PieceType)piece + 1, sideToMove > 0); mask != 0;)
+            {
+                // A number between 0 to 63 that indicates which square the piece is on, flip for black
+                int squareIndex = BitboardHelper.ClearAndGetIndexOfLSB(ref mask) ^ 56 * sideToMove;
+
+                // Piece values are baked into the pst (see constructor of the bot)
+                mg += _pst[squareIndex][piece];
+                eg += _pst[squareIndex][piece + 6];
+
+                // The less pieces, the more we bend towards our endgame strategy
+                phase += _phaseWeight[piece];
+            }
+
+            // Flip score for optimised token count (always white perspective due to double flip)
+            // Eg. White eval = 2300 -> flip -> -2300 -> black eval = 2000 -> -300 -> flip -> 300 
+            mg = -mg;
+            eg = -eg;
+        }
+
+        // Tapered evaluation since our goals towards endgame shifts
+        return (mg * phase + eg * (24 - phase)) / 24 * (_board.IsWhiteToMove ? 1 : -1);
+    }
 
     // Constructor and wizardry to unpack the bitmap piece square tables and bake the piece values into the values
     public MinusOneBot()

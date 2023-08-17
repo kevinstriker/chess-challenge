@@ -31,6 +31,11 @@ namespace ChessChallenge.Application
                 controller.StartNewBotMatch(ChallengeController.PlayerType.MyBot,
                     ChallengeController.PlayerType.MinusOneBot);
             }   
+            if (NextButtonInRow("MyBot vs V3", ref buttonPos, spacing, buttonSize))
+            {
+                controller.StartNewBotMatch(ChallengeController.PlayerType.MyBot,
+                    ChallengeController.PlayerType.V3);
+            }
             if (NextButtonInRow("MyBot vs LBB4", ref buttonPos, spacing, buttonSize))
             {
                 controller.StartNewBotMatch(ChallengeController.PlayerType.MyBot,

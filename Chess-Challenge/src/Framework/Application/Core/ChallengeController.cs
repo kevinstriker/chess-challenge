@@ -24,14 +24,15 @@ namespace ChessChallenge.Application
             Human,
             MyBot,
             EvilBot,
-            // Custom: my previous version of the bot
+            // Custom: my previous versions of the bot
             V1,
             V2,
-            MinusOneBot, 
+            V3,
+            MinusOneBot,
             // Custom: other bots
             NegaMaxBot, // T1
             JacquesBot, // T2
-            MagnesiumBot, // T2.1
+            JeffBot,
             LiteBlueBot1,
             LiteBlueBot2,
             LiteBlueBot3,
@@ -51,11 +52,12 @@ namespace ChessChallenge.Application
                 // Custom: my previous version
                 PlayerType.V1 => new V1(),
                 PlayerType.V2 => new V2(),
+                PlayerType.V3 => new V3(),
                 PlayerType.MinusOneBot => new MinusOneBot(),
                 // Custom: other bots
                 PlayerType.NegaMaxBot => new NegaMaxBot(),
                 PlayerType.JacquesBot => new JacquesBot(),
-                PlayerType.MagnesiumBot => new MagnesiumBot(),
+                PlayerType.JeffBot => new JeffBot(),
                 PlayerType.LiteBlueBot1 => new LiteBlueBot1(),
                 PlayerType.LiteBlueBot2 => new LiteBlueBot2(),
                 PlayerType.LiteBlueBot3 => new LiteBlueBot3(),
@@ -255,10 +257,11 @@ namespace ChessChallenge.Application
                 PlayerType.EvilBot => new ChessPlayer(new EvilBot(), type, GameDurationMilliseconds),
                 PlayerType.V1 => new ChessPlayer(new V1(), type, GameDurationMilliseconds),
                 PlayerType.V2 => new ChessPlayer(new V2(), type, GameDurationMilliseconds),
+                PlayerType.V3 => new ChessPlayer(new V3(), type, GameDurationMilliseconds),
                 PlayerType.MinusOneBot => new ChessPlayer(new MinusOneBot(), type, GameDurationMilliseconds),
                 PlayerType.NegaMaxBot => new ChessPlayer(new NegaMaxBot(), type, GameDurationMilliseconds),
                 PlayerType.JacquesBot => new ChessPlayer(new JacquesBot(), type, GameDurationMilliseconds),
-                PlayerType.MagnesiumBot => new ChessPlayer(new MagnesiumBot(), type, GameDurationMilliseconds),
+                PlayerType.JeffBot => new ChessPlayer(new JeffBot(), type, GameDurationMilliseconds),
                 PlayerType.LiteBlueBot1 => new ChessPlayer(new LiteBlueBot1(), type, GameDurationMilliseconds),
                 PlayerType.LiteBlueBot2 => new ChessPlayer(new LiteBlueBot2(), type, GameDurationMilliseconds),
                 PlayerType.LiteBlueBot3 => new ChessPlayer(new LiteBlueBot3(), type, GameDurationMilliseconds),

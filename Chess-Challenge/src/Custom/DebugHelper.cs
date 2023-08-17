@@ -42,8 +42,8 @@ public static class DebugHelper
         qnodesString += string.Concat(Enumerable.Repeat(" ", 40 - qnodesString.Length));
 
         // Nodes per second
-        int npms =  (nodes + qnodes) / Math.Max(timer.MillisecondsElapsedThisTurn, 1);
-        string npsString = $"{textColor}npms{blueColor} {npms}{textColor}k";
+        int nps =  (nodes + qnodes) / Math.Max(timer.MillisecondsElapsedThisTurn, 1);
+        string npsString = $"{textColor}nps{blueColor} {nps}{textColor}k";
         npsString += string.Concat(Enumerable.Repeat(" ", 34 - npsString.Length));
 
         // Best move String 
@@ -57,22 +57,11 @@ public static class DebugHelper
             }));
     }
 
-    // Current Bot version
+    // My Bot version
     public static void LogDepth(Timer timer, int depth, int score, MyBot bot)
     {
         LogDepth(bot.GetType().ToString(), timer, depth, score, bot.Nodes, bot.QNodes, bot.BestMove);
     }
-
-    // Previous bot version (but not a release version)
-    public static void LogDepth(Timer timer, int depth, int score, MinusOneBot bot)
-    {
-        LogDepth(bot.GetType().ToString(), timer, depth, score, bot.Nodes, bot.QNodes, bot.BestMove);
-    }
     
-    // The Magnesium version
-    public static void LogDepth(Timer timer, int depth, int score, MagnesiumBot bot)
-    {
-        LogDepth(bot.GetType().ToString(), timer, depth, score, bot.Nodes, bot.QNodes, bot.BestMove);
-    }
     
 }
