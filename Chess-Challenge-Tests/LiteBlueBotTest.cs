@@ -182,7 +182,7 @@ public class LteBlueBotTest
         // Give up queen to win one later
         _testBoard = Board.CreateBoardFromFEN("r2q1rk1/1pp1bppp/4bn2/pP6/n2Bp3/P3P1NP/2PN1PP1/2RQKB1R b K - 2 13");
 
-        for (int depth = 1; depth <= 9; depth++)
+        for (int depth = 1; depth <= 10; depth++)
         {
             int score = _bot.Search(_testBoard, depth, 0, -100000, 100000, true);
             LogAll(score);

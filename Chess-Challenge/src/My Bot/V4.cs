@@ -158,7 +158,7 @@ public class V4 : IChessBot
             }
 
             // Out of time break out of the loop
-            if (_timer.MillisecondsElapsedThisTurn > _timeLimit) return 100_000;
+            if (_timer.MillisecondsElapsedThisTurn * 2 > _timeLimit) return 100_000;
         }
 
         // Performant way to check for stalemate and checkmate

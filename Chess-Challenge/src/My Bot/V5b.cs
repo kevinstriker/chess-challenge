@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using ChessChallenge.API;
 
@@ -9,7 +9,7 @@ using ChessChallenge.API;
  * V3: Reversed futility pruning, futility pruning and from NegaMax to PVS
  * V4: Killer moves, check extensions, razoring, time management
  */
-public class MyBot : IChessBot
+public class V5b : IChessBot
 {
     public int Nodes;
     public int QNodes;
@@ -43,35 +43,38 @@ public class MyBot : IChessBot
             inCheck = Board.IsInCheck();
         int alphaStart = alpha,
             bestEval = -100_000,
-            movesSearched = 0;
+            movesSearched = 0,
+            movesScored = 0;
         
         // Check for repetition since TT doesn't know that and we don't want draws when we can win
         if (notRoot && Board.IsRepeatedPosition() || plyFromRoot > 50) return 0;
 
         // Try to find the board position in the tt
         ulong zobristKey = Board.ZobristKey;
-        TtEntry ttEntry = _tt[zobristKey % 0x400000]; // Todo: deconstruct to save tokens
+        ref TtEntry ttEntry = ref _tt[zobristKey % 0x400000];
 
         // When we find the transposition check if we can use it to narrow our alpha beta bounds
         if (notRoot && ttEntry.Key == zobristKey && ttEntry.Depth >= depth)
         {
             // 1 = lower bound; 2 = exact; 3 = upper bound
-            switch (ttEntry.Flag)
-            {
-                case 1:
-                    alpha = Math.Max(alpha, ttEntry.Score);
-                    break;                
-                case 2:
-                    return ttEntry.Score;
-                case 3:
-                    beta = Math.Min(beta, ttEntry.Score);
-                    break;
-            }
-            
+            if (ttEntry.Flag == 2) return ttEntry.Score;
+            if (ttEntry.Flag == 1) alpha = Math.Max(alpha, ttEntry.Score);
+            if (ttEntry.Flag == 3) beta = Math.Min(beta, ttEntry.Score);
+
             // Beta cutoff, move is too good, opposing player has a better option (beta) and won't play this subtree
             if (beta <= alpha) return ttEntry.Score;
         }
-        
+        // 1 = lower bound; 2 = exact; 3 = upper bound
+        if (notRoot && ttEntry.Key == zobristKey && ttEntry.Depth >= depth
+            && (ttEntry.Flag == 2
+                || (ttEntry.Flag == 3 && ttEntry.Score <= alpha)
+                || (ttEntry.Flag == 1 && ttEntry.Score >= beta)))
+        {
+            return ttEntry.Score;
+        }
+
+
+
         // Check extensions
         if (inCheck)
             depth++;
@@ -108,27 +111,37 @@ public class MyBot : IChessBot
 
             // Futility pruning: if our position is so bad that even if we improve a lot
             // We can't improve alpha, so we'll give up on this branch
-            // It's the pure form, only depth 1, classic minor piece value
-            if (depth == 1)
-                canPrune = staticEval + 300 <= alpha;
-            
-            // Classic razoring in pre-pre-frontier node by x margin, who knows
-            if (depth == 3 && staticEval + 500 <= alpha)
-                depth--;
+            if (depth < 4)
+                canPrune = staticEval + depth * 100 <= alpha;
         }
+        
+        // Generate appropriate moves depending on whether we're in QSearch
+        Span<Move> moveSpan = stackalloc Move[218];
+        Board.GetLegalMovesNonAlloc(ref moveSpan, inQSearch && !inCheck);
 
-        // Move Ordering
-        var moves = Board.GetLegalMoves(inQSearch).OrderByDescending(
-            move =>
+        // Order moves in reverse order -> negative values are ordered higher hence the strange equations
+        Span<int> moveScores = stackalloc int[moveSpan.Length];
+        foreach (Move move in moveSpan)
+            moveScores[movesScored++] = -(
+                // Hash move
                 move == ttEntry.BestMove ? 9_000_000 :
-                move.IsCapture ? 1_000_000 * (int)move.CapturePieceType - (int)move.MovePieceType :
+                // Promotions
                 move.IsPromotion ? 1_000_000 :
+                // MVVLVA
+                move.IsCapture ? 1_000_000 * (int)move.CapturePieceType - (int)move.MovePieceType :
+                // Killers
                 _killers[plyFromRoot] == move ? 900_000 :
-                HistoryHeuristics[plyFromRoot & 1, (int)move.MovePieceType, move.TargetSquare.Index]
-        ).ToArray();
+                // History
+                HistoryHeuristics[plyFromRoot & 1, (int)move.MovePieceType, move.TargetSquare.Index]);
+
+        moveScores.Sort(moveSpan);
+        
+        // Performant way to check for stalemate and checkmate
+        if (!inQSearch && moveSpan.IsEmpty)
+            return inCheck ? plyFromRoot - 100_000 : 0;
         
         Move bestMove = default;
-        foreach (Move move in moves)
+        foreach (Move move in moveSpan)
         {
             // On certain nodes (tactical nodes), static eval, even with a wide margin, isn't safe enough to exclude
             bool tactical = !move.IsCapture && !move.IsPromotion;
@@ -175,11 +188,8 @@ public class MyBot : IChessBot
             // Out of time break out of the loop
             if (Timer.MillisecondsElapsedThisTurn > TimeLimit) return 100_000;
         }
-
-        // Performant way to check for stalemate and checkmate
-        if (!inQSearch && moves.Length == 0) return inCheck ? plyFromRoot - 100_000 : 0;
         
-        _tt[zobristKey % 0x400000] = new TtEntry(zobristKey, 
+        ttEntry = new(zobristKey, 
             bestEval, 
             depth, 
             bestEval <= alphaStart ? 3 : bestEval >= beta ? 1 : 2, 
@@ -285,7 +295,7 @@ public class MyBot : IChessBot
     }
 
     // Constructor and wizardry to unpack the bitmap piece square tables and bake the piece values into the values
-    public MyBot()
+    public V5b()
     {
         _pst = _packedPst.Select(packedTable =>
         {

@@ -210,7 +210,7 @@ public class MyBotTest
         _testBoard = Board.CreateBoardFromFEN("5rk1/2p2qp1/3b3p/8/2PQ4/3P3P/Pr1B1Pp1/3R1RK1 w - - 0 23");
         _bot.Board = _testBoard;
             
-        for (int depth = 1; depth <= 13; depth++)
+        for (int depth = 1; depth <= 11; depth++)
         {
             int score = _bot.Pvs( depth, 0, -100000, 100000, true);
             LogAll(depth, score);
@@ -218,6 +218,22 @@ public class MyBotTest
         Assert.That(_bot.BestMove.MovePieceType, Is.EqualTo(PieceType.Rook));
         Assert.That(_bot.BestMove.StartSquare.Name, Is.EqualTo("f1"));
         Assert.That(_bot.BestMove.TargetSquare.Name, Is.EqualTo("e1"));
+    }
+    
+    [Test]
+    public void TestPuzzle12()
+    {
+        _testBoard = Board.CreateBoardFromFEN("3r1r1k/p1p2p1p/1q6/1p2P1Q1/1n1P4/6PP/5PBK/R2R4 w - - 1 39");
+        _bot.Board = _testBoard;
+            
+        for (int depth = 1; depth <= 10; depth++)
+        {
+            int score = _bot.Pvs( depth, 0, -100000, 100000, true);
+            LogAll(depth, score);
+        }
+        Assert.That(_bot.BestMove.MovePieceType, Is.EqualTo(PieceType.Bishop));
+        Assert.That(_bot.BestMove.StartSquare.Name, Is.EqualTo("g2"));
+        Assert.That(_bot.BestMove.TargetSquare.Name, Is.EqualTo("e4"));
     }
     
     #endregion
