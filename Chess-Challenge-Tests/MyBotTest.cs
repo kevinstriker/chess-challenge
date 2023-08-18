@@ -193,7 +193,7 @@ public class MyBotTest
         _testBoard = Board.CreateBoardFromFEN("r2q1rk1/1pp1bppp/4bn2/pP6/n2Bp3/P3P1NP/2PN1PP1/2RQKB1R b K - 2 13");
         _bot.Board = _testBoard;
         
-        for (int depth = 1; depth <= 11; depth++)
+        for (int depth = 1; depth <= 12; depth++)
         {
             int score = _bot.Pvs( depth, 0, -100000, 100000, true);
             LogAll(depth, score);
@@ -210,7 +210,7 @@ public class MyBotTest
         _testBoard = Board.CreateBoardFromFEN("5rk1/2p2qp1/3b3p/8/2PQ4/3P3P/Pr1B1Pp1/3R1RK1 w - - 0 23");
         _bot.Board = _testBoard;
             
-        for (int depth = 1; depth <= 11; depth++)
+        for (int depth = 1; depth <= 12; depth++)
         {
             int score = _bot.Pvs( depth, 0, -100000, 100000, true);
             LogAll(depth, score);
@@ -236,6 +236,44 @@ public class MyBotTest
         Assert.That(_bot.BestMove.TargetSquare.Name, Is.EqualTo("e4"));
     }
     
+    #endregion
+
+    #region Starting position
+    
+    [Test]
+    /*
+     * Info: depth:  2 || eval:     12 || nodes:       183 || nps:    16636 || time:    10ms || best move: g1f3
+     * Info: depth:  3 || eval:     22 || nodes:       323 || nps:    26916 || time:    11ms || best move: g1f3
+     * Info: depth:  4 || eval:     12 || nodes:       612 || nps:    51000 || time:    11ms || best move: g1f3
+     * Info: depth:  5 || eval:     19 || nodes:      1557 || nps:   111214 || time:    13ms || best move: g1f3
+     * Info: depth:  6 || eval:     12 || nodes:      3850 || nps:   213888 || time:    17ms || best move: g1f3
+     * Info: depth:  7 || eval:     16 || nodes:      9257 || nps:   342851 || time:    26ms || best move: g1f3
+     * Info: depth:  8 || eval:     12 || nodes:     19395 || nps:   440795 || time:    43ms || best move: g1f3
+     * Info: depth:  9 || eval:     20 || nodes:     72068 || nps:   637769 || time:   112ms || best move: b1c3
+     * Info: depth: 10 || eval:     12 || nodes:    150731 || nps:   731703 || time:   205ms || best move: b1c3
+     * Info: depth: 11 || eval:     18 || nodes:    398854 || nps:  1030630 || time:   386ms || best move: g1f3
+     * Info: depth: 12 || eval:     12 || nodes:    837791 || nps:  1362261 || time:   614ms || best move: d2d4
+     * Info: depth: 13 || eval:     15 || nodes:   1574613 || nps:  1462036 || time:  1076ms || best move: d2d4
+     * Info: depth: 14 || eval:     13 || nodes:   2612874 || nps:  1611890 || time:  1620ms || best move: d2d4
+     * Info: depth: 15 || eval:     19 || nodes:   5558057 || nps:  1762224 || time:  3153ms || best move: d2d4
+     * Info: depth: 16 || eval:     13 || nodes:  13872494 || nps:  1853125 || time:  7485ms || best move: d2d4
+     * Info: depth: 17 || eval:     13 || nodes:  29057297 || nps:  1885123 || time: 15413ms || best move: d2d4
+     * Info: depth: 18 || eval:      9 || nodes:  80326989 || nps:  1873603 || time: 42872ms || best move: d2d4
+     **/
+    public void TestStartingPosition()
+    {
+        _testBoard = Board.CreateBoardFromFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+        _bot.Board = _testBoard;
+            
+        for (int depth = 1; depth <= 11; depth++)
+        {
+            int score = _bot.Pvs( depth, 0, -100000, 100000, true);
+            LogAll(depth, score);
+        }
+        Assert.That(_stopwatch.ElapsedMilliseconds, Is.LessThan(20000));
+    }
+    
+
     #endregion
 
     #region Move ordering
