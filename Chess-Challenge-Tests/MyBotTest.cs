@@ -226,7 +226,7 @@ public class MyBotTest
         _testBoard = Board.CreateBoardFromFEN("3r1r1k/p1p2p1p/1q6/1p2P1Q1/1n1P4/6PP/5PBK/R2R4 w - - 1 39");
         _bot.Board = _testBoard;
             
-        for (int depth = 1; depth <= 10; depth++)
+        for (int depth = 1; depth <= 9; depth++)
         {
             int score = _bot.Pvs( depth, 0, -100000, 100000, true);
             LogAll(depth, score);
