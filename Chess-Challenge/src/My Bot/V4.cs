@@ -13,12 +13,13 @@ public class V4 : IChessBot
 {
     // Transposition Table: keep track of positions that were already calculated and possibly re-use information
     record struct TtEntry(ulong Key, int Score, int Depth, int Flag, Move BestMove);
+
     TtEntry[] _tt = new TtEntry[0x400000];
 
     // History Heuristics: keep track on great moves that caused a cutoff to retry them
     // Based on a lookup by color, piece type and target square
     int[,,] _historyHeuristics;
-    
+
     // Killer moves: keep track on great moves that caused a cutoff to retry them
     // Based on a lookup by depth
     Move[] _killers = new Move[256];
@@ -41,7 +42,7 @@ public class V4 : IChessBot
         int alphaStart = alpha,
             bestEval = -100_000,
             movesSearched = 0;
-        
+
         // Check for repetition since TT doesn't know that and we don't want draws when we can win
         if (notRoot && _board.IsRepeatedPosition() || plyFromRoot > 50) return 0;
 
@@ -64,7 +65,7 @@ public class V4 : IChessBot
         // Check extensions
         if (inCheck)
             depth++;
-        
+
         // Search quiescence position to prevent horizon effect
         bool inQSearch = depth < 1;
         if (inQSearch)
@@ -89,7 +90,7 @@ public class V4 : IChessBot
             {
                 _board.ForceSkipTurn();
                 // depth - (1 + R(eduction)), using the classic 2 for reduction
-                int nullMoveEval = -Pvs( depth - 3, plyFromRoot, -beta, 1 - beta, false);
+                int nullMoveEval = -Pvs(depth - 3, plyFromRoot, -beta, 1 - beta, false);
                 _board.UndoSkipTurn();
                 // Prune branch when the side who got a free move can't even improve
                 if (beta <= nullMoveEval) return nullMoveEval;
@@ -99,7 +100,7 @@ public class V4 : IChessBot
             // We can't improve alpha, so we'll give up on this branch
             if (depth < 4)
                 canPrune = staticEval + depth * 100 <= alpha;
-            
+
             // Classic razoring in pre-pre-frontier node by rook margin, who knows
             if (depth == 3 && staticEval + 500 <= alpha)
                 depth--;
@@ -114,7 +115,7 @@ public class V4 : IChessBot
                 _killers[plyFromRoot] == move ? 900_000 :
                 _historyHeuristics[plyFromRoot & 1, (int)move.MovePieceType, move.TargetSquare.Index]
         ).ToArray();
-        
+
         Move bestMove = default;
         foreach (Move move in moves)
         {
@@ -125,17 +126,15 @@ public class V4 : IChessBot
             if (canPrune && !tactical && movesSearched > 0) continue;
 
             _board.MakeMove(move);
-            
+
             // Principle Variation Search: search our first moves fully with normal bounds
-            // After we're using a small window search (performant) to know if it has potential
             bool isFullSearch = inQSearch || movesSearched++ == 0;
-            int score = -Pvs(depth - 1, plyFromRoot, isFullSearch ? -beta : -alpha - 1, -alpha,
-                !isFullSearch && canNullMove);
-            
-            // If the branch has potential, if it can improve alpha, we'll need to fully search it for exact score
+            // When full search, search full window, otherwise, small window 
+            int score = -Pvs(depth - 1, plyFromRoot, isFullSearch ? -beta : -alpha - 1, -alpha, canNullMove);
+            // If we did not search full window, but the branch has potential, we'll need to search fully
             if (!isFullSearch && score > alpha)
                 score = -Pvs(depth - 1, plyFromRoot, -beta, -alpha, canNullMove);
-            
+
             _board.UndoMove(move);
 
             if (score > bestEval)
@@ -144,15 +143,17 @@ public class V4 : IChessBot
                 bestMove = move;
                 bestEval = score;
                 alpha = Math.Max(alpha, bestEval);
-                
+
                 // Beta cutoff, move is too good, opposing player has a better option (beta) and won't play this subtree
                 if (beta <= alpha)
                 {
                     if (!move.IsCapture)
-                    {                       
-                        _historyHeuristics[plyFromRoot & 1, (int)move.MovePieceType, move.TargetSquare.Index] += depth * depth;
+                    {
+                        _historyHeuristics[plyFromRoot & 1, (int)move.MovePieceType, move.TargetSquare.Index] +=
+                            depth * depth;
                         _killers[plyFromRoot] = move;
                     }
+
                     break;
                 }
             }
@@ -163,13 +164,13 @@ public class V4 : IChessBot
 
         // Performant way to check for stalemate and checkmate
         if (!inQSearch && moves.Length == 0) return inCheck ? plyFromRoot - 100_000 : 0;
-        
-        _tt[zobristKey % 0x400000] = new TtEntry(zobristKey, 
-            bestEval, 
-            depth, 
-            bestEval <= alphaStart ? 3 : bestEval >= beta ? 1 : 2, 
+
+        _tt[zobristKey % 0x400000] = new TtEntry(zobristKey,
+            bestEval,
+            depth,
+            bestEval <= alphaStart ? 3 : bestEval >= beta ? 1 : 2,
             bestMove);
-        
+
         return bestEval;
     }
 
@@ -191,10 +192,10 @@ public class V4 : IChessBot
         for (int depth = 1; depth < 50; depth++)
         {
             Pvs(depth, 0, -100000, 100000, true);
-            
+
             if (_timer.MillisecondsElapsedThisTurn * 2 > _timeLimit) break;
         }
-        
+
         return _bestMove;
     }
 

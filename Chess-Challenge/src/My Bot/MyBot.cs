@@ -8,7 +8,6 @@ using ChessChallenge.API;
  * V2: Null move pruning, History heuristics
  * V3: Reversed futility pruning, futility pruning and from NegaMax to PVS
  * V4: Killer moves, check extensions, razoring, time management
- * V4.1 Back to more pure forms of pruning, Stack alloc
  */
 public class MyBot : IChessBot
 {
@@ -44,9 +43,8 @@ public class MyBot : IChessBot
             inCheck = Board.IsInCheck();
         int alphaStart = alpha,
             bestEval = -100_000,
-            movesScored = 0,
             movesSearched = 0;
-
+        
         // Check for repetition since TT doesn't know that and we don't want draws when we can win
         if (notRoot && Board.IsRepeatedPosition() || plyFromRoot > 50) return 0;
 
@@ -77,7 +75,7 @@ public class MyBot : IChessBot
         // Check extensions
         if (inCheck)
             depth++;
-
+        
         // Search quiescence position to prevent horizon effect
         bool inQSearch = depth < 1;
         if (inQSearch)
@@ -93,7 +91,7 @@ public class MyBot : IChessBot
 
             // Reverse futility pruning: if our position is much better than beta and even if we start losing material 
             // every depth from now and we'd still be above beta, cut it off.
-            // Use symbolic value of 100 centi pawn per ply
+            // Use symbolic value of 100 centipawn per ply
             if (depth < 4 && beta <= staticEval - 100 * depth)
                 return staticEval;
 
@@ -110,53 +108,43 @@ public class MyBot : IChessBot
 
             // Futility pruning: if our position is so bad that even if we improve a lot
             // We can't improve alpha, so we'll give up on this branch
-            // It's the pure form, only depth 1, classic minor piece value
-            if (depth == 1)
-                canPrune = staticEval + 300 <= alpha;
-
-            // Classic razoring in pre-pre-frontier node by x margin, who knows
+            if (depth < 4)
+                canPrune = staticEval + depth * 100 <= alpha;
+            
+            // Classic razoring in pre-pre-frontier node by rook margin, who knows
             if (depth == 3 && staticEval + 500 <= alpha)
                 depth--;
         }
-        
-        // Generate appropriate moves depending on whether we're in QSearch
-        Span<Move> moveSpan = stackalloc Move[218];
-        Board.GetLegalMovesNonAlloc(ref moveSpan, inQSearch);
 
-        // Order moves in reverse order -> negative values are ordered higher hence the strange equations
-        Span<int> moveScores = stackalloc int[moveSpan.Length];
-        foreach (Move move in moveSpan)
-            moveScores[movesScored++] = -(
+        // Move Ordering
+        var moves = Board.GetLegalMoves(inQSearch).OrderByDescending(
+            move =>
                 move == ttEntry.BestMove ? 9_000_000 :
                 move.IsCapture ? 1_000_000 * (int)move.CapturePieceType - (int)move.MovePieceType :
                 move.IsPromotion ? 1_000_000 :
                 _killers[plyFromRoot] == move ? 900_000 :
-                HistoryHeuristics[plyFromRoot & 1, (int)move.MovePieceType, move.TargetSquare.Index]);
-        moveScores.Sort(moveSpan);
+                HistoryHeuristics[plyFromRoot & 1, (int)move.MovePieceType, move.TargetSquare.Index]
+        ).ToArray();
         
         Move bestMove = default;
-        foreach (Move move in moveSpan)
+        foreach (Move move in moves)
         {
             // On certain nodes (tactical nodes), static eval, even with a wide margin, isn't safe enough to exclude
-            bool tactical = !move.IsCapture && !move.IsPromotion;
+            bool tactical = movesSearched == 0 || move.IsCapture || move.IsPromotion;
 
-            // Only futility prune on non tactical nodes and when we've fully searched 1 line to prevent pruning everything
-            if (canPrune && !tactical && movesSearched > 0) continue;
-
-            if (depth > 0) Nodes++;
-            else QNodes++;
+            // When we want to prune, only futility prune on non tactical nodes
+            if (canPrune && !tactical) continue;
 
             Board.MakeMove(move);
-
-            // Principle Variation Search 
+            
+            // Principle Variation Search: search our first moves fully with normal bounds
             bool isFullSearch = inQSearch || movesSearched++ == 0;
-            // Fully search first move otherwise we search with small window
-            int score = -Pvs(depth - 1, plyFromRoot, isFullSearch ? -beta : -alpha - 1, -alpha,
-                isFullSearch && canNullMove);
-            // When we improved alpha with our zero window search we'll have to fully search
+            // Either a full search or windowed search
+            int score = -Pvs(depth - 1, plyFromRoot, isFullSearch ? -beta : -alpha - 1, -alpha, canNullMove);
+            // If the windowed search has potential, we'll full search
             if (!isFullSearch && score > alpha)
                 score = -Pvs(depth - 1, plyFromRoot, -beta, -alpha, canNullMove);
-
+            
             Board.UndoMove(move);
 
             if (score > bestEval)
@@ -165,17 +153,15 @@ public class MyBot : IChessBot
                 bestMove = move;
                 bestEval = score;
                 alpha = Math.Max(alpha, bestEval);
-
+                
                 // Beta cutoff, move is too good, opposing player has a better option (beta) and won't play this subtree
                 if (beta <= alpha)
                 {
                     if (!move.IsCapture)
                     {
-                        HistoryHeuristics[plyFromRoot & 1, (int)move.MovePieceType, move.TargetSquare.Index] +=
-                            depth * depth;
+                        HistoryHeuristics[plyFromRoot & 1, (int)move.MovePieceType, move.TargetSquare.Index] += depth * depth;
                         _killers[plyFromRoot] = move;
                     }
-
                     break;
                 }
             }
@@ -185,14 +171,14 @@ public class MyBot : IChessBot
         }
 
         // Performant way to check for stalemate and checkmate
-        if (!inQSearch && moveSpan.IsEmpty) return inCheck ? plyFromRoot - 100_000 : 0;
-
-        _tt[zobristKey % 0x400000] = new TtEntry(zobristKey,
-            bestEval,
-            depth,
-            bestEval <= alphaStart ? 3 : bestEval >= beta ? 1 : 2,
+        if (!inQSearch && moves.Length == 0) return inCheck ? plyFromRoot - 100_000 : 0;
+        
+        _tt[zobristKey % 0x400000] = new TtEntry(zobristKey, 
+            bestEval, 
+            depth, 
+            bestEval <= alphaStart ? 3 : bestEval >= beta ? 1 : 2, 
             bestMove);
-
+        
         return bestEval;
     }
 
@@ -216,14 +202,10 @@ public class MyBot : IChessBot
         // Iterative deepening
         for (int depth = 1; depth < 50; depth++)
         {
-            int score = Pvs(depth, 0, -100000, 100000, true);
-
-            // DebugHelper.LogDepth(timer, depth, score, this);
+            Pvs(depth, 0, -100000, 100000, true);
             
             if (Timer.MillisecondsElapsedThisTurn * 2 > TimeLimit) break;
         }
-
-        //Console.WriteLine();
         
         return BestMove;
     }
