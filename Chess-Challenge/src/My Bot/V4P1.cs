@@ -8,10 +8,13 @@ using ChessChallenge.API;
  * V2: Null move pruning, History heuristics
  * V3: Reversed futility pruning, futility pruning and from NegaMax to PVS
  * V4: Killer moves, check extensions, razoring, time management
- * V5: Back to more pure forms of pruning
+ * V4.1 Back to more pure forms of pruning, Stack alloc
  */
-public class V5b : IChessBot
+public class V4P1 : IChessBot
 {
+    public int Nodes;
+    public int QNodes;
+
     // Transposition Table: keep track of positions that were already calculated and possibly re-use information
     record struct TtEntry(ulong Key, int Score, int Depth, int Flag, Move BestMove);
     TtEntry[] _tt = new TtEntry[0x400000];
@@ -58,22 +61,22 @@ public class V5b : IChessBot
             {
                 case 1:
                     alpha = Math.Max(alpha, ttEntry.Score);
-                    break;                
+                    break;
                 case 2:
                     return ttEntry.Score;
                 case 3:
                     beta = Math.Min(beta, ttEntry.Score);
                     break;
             }
-            
+
             // Beta cutoff, move is too good, opposing player has a better option (beta) and won't play this subtree
             if (beta <= alpha) return ttEntry.Score;
         }
-        
+
         // Check extensions
         if (inCheck)
             depth++;
-        
+
         // Search quiescence position to prevent horizon effect
         bool inQSearch = depth < 1;
         if (inQSearch)
@@ -114,7 +117,7 @@ public class V5b : IChessBot
             if (depth == 3 && staticEval + 500 <= alpha)
                 depth--;
         }
-
+        
         // Move Ordering
         var moves = Board.GetLegalMoves(inQSearch).OrderByDescending(
             move =>
@@ -124,7 +127,7 @@ public class V5b : IChessBot
                 _killers[plyFromRoot] == move ? 900_000 :
                 HistoryHeuristics[plyFromRoot & 1, (int)move.MovePieceType, move.TargetSquare.Index]
         ).ToArray();
-
+        
         Move bestMove = default;
         foreach (Move move in moves)
         {
@@ -133,6 +136,9 @@ public class V5b : IChessBot
 
             // Only futility prune on non tactical nodes and when we've fully searched 1 line to prevent pruning everything
             if (canPrune && !tactical && movesSearched > 0) continue;
+
+            if (depth > 0) Nodes++;
+            else QNodes++;
 
             Board.MakeMove(move);
 
@@ -144,7 +150,7 @@ public class V5b : IChessBot
             // When we improved alpha with our zero window search we'll have to fully search
             if (!isFullSearch && score > alpha)
                 score = -Pvs(depth - 1, plyFromRoot, -beta, -alpha, canNullMove);
-            
+
             Board.UndoMove(move);
 
             if (score > bestEval)
@@ -153,7 +159,7 @@ public class V5b : IChessBot
                 bestMove = move;
                 bestEval = score;
                 alpha = Math.Max(alpha, bestEval);
-                
+
                 // Beta cutoff, move is too good, opposing player has a better option (beta) and won't play this subtree
                 if (beta <= alpha)
                 {
@@ -162,6 +168,7 @@ public class V5b : IChessBot
                         HistoryHeuristics[plyFromRoot & 1, (int)move.MovePieceType, move.TargetSquare.Index] += depth * depth;
                         _killers[plyFromRoot] = move;
                     }
+
                     break;
                 }
             }
@@ -184,6 +191,9 @@ public class V5b : IChessBot
 
     public Move Think(Board board, Timer timer)
     {
+        Nodes = 0;
+        QNodes = 0;
+
         Timer = timer;
         Board = board;
 
@@ -199,11 +209,11 @@ public class V5b : IChessBot
         // Iterative deepening
         for (int depth = 1; depth < 50; depth++)
         {
-            Pvs(depth, 0, -100000, 100000, true);
-
+            int score = Pvs(depth, 0, -100000, 100000, true);
+            
             if (Timer.MillisecondsElapsedThisTurn * 2 > TimeLimit) break;
         }
-
+        
         return BestMove;
     }
 
@@ -276,7 +286,7 @@ public class V5b : IChessBot
     }
 
     // Constructor and wizardry to unpack the bitmap piece square tables and bake the piece values into the values
-    public V5b()
+    public V4P1()
     {
         _pst = _packedPst.Select(packedTable =>
         {
