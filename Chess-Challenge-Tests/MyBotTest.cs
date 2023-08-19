@@ -9,7 +9,7 @@ public class MyBotTest
     private MyBot _bot;
     private Board _testBoard;
     private Stopwatch _stopwatch;
-    
+
     [SetUp]
     public void Setup()
     {
@@ -22,36 +22,77 @@ public class MyBotTest
         _stopwatch = Stopwatch.StartNew();
     }
 
-    #region Puzzles
+    #region Higher Depth
 
     [Test]
-    public void TestPuzzle1()
+    public void TestGiveUpQueenToWinItBack()
     {
-        // Checkmate by queen sacrifice
-        _testBoard = Board.CreateBoardFromFEN("2r2bk1/p5p1/1p1p2Qp/2PNp3/PR1nNr1q/3P4/5PPP/5RK1 b - - 0 1");
+        // Give up queen to win one later
+        _testBoard = Board.CreateBoardFromFEN("r2q1rk1/1pp1bppp/4bn2/pP6/n2Bp3/P3P1NP/2PN1PP1/2RQKB1R b K - 2 13");
         _bot.Board = _testBoard;
-        
-        for (int depth = 1; depth <= 6; depth++)
+
+        for (int depth = 1; depth <= 11; depth++)
         {
-            int score = _bot.Pvs( depth, 0, -100000, 100000, true);
+            int score = _bot.Pvs(depth, 0, -100000, 100000);
             LogAll(depth, score);
         }
 
-        Assert.That(_bot.BestMove.MovePieceType, Is.EqualTo(PieceType.Knight));
-        Assert.That(_bot.BestMove.StartSquare.Name, Is.EqualTo("d4"));
-        Assert.That(_bot.BestMove.TargetSquare.Name, Is.EqualTo("e2"));
+        Assert.That(_bot.BestMove.MovePieceType, Is.EqualTo(PieceType.Queen));
+        Assert.That(_bot.BestMove.StartSquare.Name, Is.EqualTo("d8"));
+        Assert.That(_bot.BestMove.TargetSquare.Name, Is.EqualTo("d4"));
     }
 
     [Test]
-    public void TestPuzzle2()
+    public void TestKingSafetyDoNotTakePawn()
     {
-        // Move queen out of the way to threat mate and win rook if not mate
+        // Do not take pawn with king since it will lose the queen much later
+        _testBoard = Board.CreateBoardFromFEN("5rk1/2p2qp1/3b3p/8/2PQ4/3P3P/Pr1B1Pp1/3R1RK1 w - - 0 23");
+        _bot.Board = _testBoard;
+
+        for (int depth = 1; depth <= 13; depth++)
+        {
+            int score = _bot.Pvs(depth, 0, -100000, 100000);
+            LogAll(depth, score);
+        }
+
+        Assert.That(_bot.BestMove.MovePieceType, Is.EqualTo(PieceType.Rook));
+        Assert.That(_bot.BestMove.StartSquare.Name, Is.EqualTo("f1"));
+        Assert.That(_bot.BestMove.TargetSquare.Name, Is.EqualTo("e1"));
+    }
+
+    
+
+    #endregion
+    
+    #region Lower Depth
+
+    [Test]
+    public void TestDoNotGoForPawnAdvantage()
+    {
+        _testBoard = Board.CreateBoardFromFEN("r1b1k2r/pp2nppp/2pp1q2/5P2/2BbP3/2N1B3/PP3QPP/R4RK1 b kq - 1 18");
+        _bot.Board = _testBoard;
+
+        for (int depth = 1; depth <= 11; depth++)
+        {
+            int score = _bot.Pvs(depth, 0, -100000, 100000);
+            LogAll(depth, score);
+        }
+
+        Assert.That(_bot.BestMove.MovePieceType, Is.EqualTo(PieceType.Bishop));
+        Assert.That(_bot.BestMove.StartSquare.Name, Is.EqualTo("d4"));
+        Assert.That(_bot.BestMove.TargetSquare.Name, Is.EqualTo("e3"));
+    }
+
+    
+    [Test]
+    public void TestWinRookByCheckMateThreat()
+    {
         _testBoard = Board.CreateBoardFromFEN("4rq1k/3r1p1p/3p1p2/1p1P2Q1/p1n2P2/P1P4R/1P3RPK/8 w - - 0 1");
         _bot.Board = _testBoard;
 
         for (int depth = 1; depth <= 8; depth++)
         {
-            int score = _bot.Pvs( depth, 0, -100000, 100000, true);
+            int score = _bot.Pvs(depth, 0, -100000, 100000);
             LogAll(depth, score);
         }
 
@@ -61,15 +102,14 @@ public class MyBotTest
     }
 
     [Test]
-    public void TestPuzzle3()
+    public void TestTrapQueenWithTwoRooks()
     {
-        // Trap a queen with 2 rooks
         _testBoard = Board.CreateBoardFromFEN("3r2r1/Q1pk1p2/2p2nqp/2Pp4/8/4PP1P/PP1B1RP1/R5K1 b - - 0 1");
         _bot.Board = _testBoard;
-        
+
         for (int depth = 1; depth <= 8; depth++)
         {
-            int score = _bot.Pvs( depth, 0, -100000, 100000, true);
+            int score = _bot.Pvs(depth, 0, -100000, 100000);
             LogAll(depth, score);
         }
 
@@ -79,15 +119,14 @@ public class MyBotTest
     }
 
     [Test]
-    public void TestPuzzle4()
+    public void TestWinRookAndPawnForBishop()
     {
-        // Win a Rook and a Pawn for a bishop
         _testBoard = Board.CreateBoardFromFEN("rn3r1k/pp3p1p/4bN2/q3Q3/1b1p3P/5N2/PPP2PP1/2KR1B1R b - - 2 14");
         _bot.Board = _testBoard;
-        
+
         for (int depth = 1; depth <= 8; depth++)
         {
-            int score = _bot.Pvs( depth, 0, -100000, 100000, true);
+            int score = _bot.Pvs(depth, 0, -100000, 100000);
             LogAll(depth, score);
         }
 
@@ -97,15 +136,15 @@ public class MyBotTest
     }
 
     [Test]
-    public void TestPuzzle5()
+    public void TestPressureWithPawnForKnightForRook()
     {
         // Put pressure with moving a small piece (pawn) and win a rook for a knight
         _testBoard = Board.CreateBoardFromFEN("8/5kp1/1N3p2/1p4p1/1P6/P5P1/R2n1PKP/3r4 b - - 14 39");
         _bot.Board = _testBoard;
-        
+
         for (int depth = 1; depth <= 10; depth++)
         {
-            int score = _bot.Pvs( depth, 0, -100000, 100000, true);
+            int score = _bot.Pvs(depth, 0, -100000, 100000);
             LogAll(depth, score);
         }
 
@@ -115,15 +154,14 @@ public class MyBotTest
     }
 
     [Test]
-    public void TestPuzzle6()
+    public void TestMoveRookSimpleDamageControl()
     {
-        // Simple "damage control" puzzle to prevent promotion there is only 1 reasonable move
         _testBoard = Board.CreateBoardFromFEN("r3k2r/1ppb1ppp/2n1p3/1q6/3PN3/2PPp3/PpQ2PPP/R3K2R w KQkq - 0 16");
         _bot.Board = _testBoard;
-        
+
         for (int depth = 1; depth <= 8; depth++)
         {
-            int score = _bot.Pvs( depth, 0, -100000, 100000, true);
+            int score = _bot.Pvs(depth, 0, -100000, 100000);
             LogAll(depth, score);
         }
 
@@ -132,34 +170,17 @@ public class MyBotTest
         Assert.That(_bot.BestMove.TargetSquare.Name, Is.EqualTo("b1"));
     }
 
-    [Test]
-    public void TestPuzzle7()
-    {
-        // Trap queen with pawn attack
-        _testBoard = Board.CreateBoardFromFEN("3q1k2/5ppp/r1p1p3/p1np4/3Qn3/P1P1P3/3N1PPP/R3K2R b KQ - 3 17");
-        _bot.Board = _testBoard;
-        
-        for (int depth = 1; depth <= 6; depth++)
-        {
-            int score = _bot.Pvs( depth, 0, -100000, 100000, true);
-            LogAll(depth, score);
-        }
-
-        Assert.That(_bot.BestMove.MovePieceType, Is.EqualTo(PieceType.Pawn));
-        Assert.That(_bot.BestMove.StartSquare.Name, Is.EqualTo("e6"));
-        Assert.That(_bot.BestMove.TargetSquare.Name, Is.EqualTo("e5"));
-    }
 
     [Test]
-    public void TestPuzzle8()
+    public void TestChangeBishopForKnightToAfterPinQueen()
     {
         // Change bishop for knight to pin queen to king after with other bishop 
         _testBoard = Board.CreateBoardFromFEN("2kr2r1/pppq1p2/2npbp1p/2bNp3/2P1P1P1/3P1N1P/PP1QBP2/R3K2R b KQ - 1 1");
         _bot.Board = _testBoard;
-        
+
         for (int depth = 1; depth <= 9; depth++)
         {
-            int score = _bot.Pvs( depth, 0, -100000, 100000, true);
+            int score = _bot.Pvs(depth, 0, -100000, 100000);
             LogAll(depth, score);
         }
 
@@ -167,79 +188,11 @@ public class MyBotTest
         Assert.That(_bot.BestMove.StartSquare.Name, Is.EqualTo("e6"));
         Assert.That(_bot.BestMove.TargetSquare.Name, Is.EqualTo("d5"));
     }
-
-    [Test]
-    public void TestPuzzle9()
-    {
-        // Bishop shouldn't go for pawn advantage but for trading bishops, otherwise you get wayyy behind
-        _testBoard = Board.CreateBoardFromFEN("r1b1k2r/pp2nppp/2pp1q2/5P2/2BbP3/2N1B3/PP3QPP/R4RK1 b kq - 1 18");
-        _bot.Board = _testBoard;
-        
-        for (int depth = 1; depth <= 9; depth++)
-        {
-            int score = _bot.Pvs( depth, 0, -100000, 100000, true);
-            LogAll(depth, score);
-        }
-
-        Assert.That(_bot.BestMove.MovePieceType, Is.EqualTo(PieceType.Bishop));
-        Assert.That(_bot.BestMove.StartSquare.Name, Is.EqualTo("d4"));
-        Assert.That(_bot.BestMove.TargetSquare.Name, Is.EqualTo("e3"));
-    }
-
-    [Test]
-    public void TestPuzzle10()
-    {
-        // Give up queen to win one later
-        _testBoard = Board.CreateBoardFromFEN("r2q1rk1/1pp1bppp/4bn2/pP6/n2Bp3/P3P1NP/2PN1PP1/2RQKB1R b K - 2 13");
-        _bot.Board = _testBoard;
-        
-        for (int depth = 1; depth <= 12; depth++)
-        {
-            int score = _bot.Pvs( depth, 0, -100000, 100000, true);
-            LogAll(depth, score);
-        }
-
-        Assert.That(_bot.BestMove.MovePieceType, Is.EqualTo(PieceType.Queen));
-        Assert.That(_bot.BestMove.StartSquare.Name, Is.EqualTo("d8"));
-        Assert.That(_bot.BestMove.TargetSquare.Name, Is.EqualTo("d4"));
-    }
-    
-    [Test]
-    public void TestPuzzle11()
-    {
-        _testBoard = Board.CreateBoardFromFEN("5rk1/2p2qp1/3b3p/8/2PQ4/3P3P/Pr1B1Pp1/3R1RK1 w - - 0 23");
-        _bot.Board = _testBoard;
-            
-        for (int depth = 1; depth <= 12; depth++)
-        {
-            int score = _bot.Pvs( depth, 0, -100000, 100000, true);
-            LogAll(depth, score);
-        }
-        Assert.That(_bot.BestMove.MovePieceType, Is.EqualTo(PieceType.Rook));
-        Assert.That(_bot.BestMove.StartSquare.Name, Is.EqualTo("f1"));
-        Assert.That(_bot.BestMove.TargetSquare.Name, Is.EqualTo("e1"));
-    }
-    
-    [Test]
-    public void TestPuzzle12()
-    {
-        _testBoard = Board.CreateBoardFromFEN("3r1r1k/p1p2p1p/1q6/1p2P1Q1/1n1P4/6PP/5PBK/R2R4 w - - 1 39");
-        _bot.Board = _testBoard;
-            
-        for (int depth = 1; depth <= 9; depth++)
-        {
-            int score = _bot.Pvs( depth, 0, -100000, 100000, true);
-            LogAll(depth, score);
-        }
-        Assert.That(_bot.BestMove.MovePieceType, Is.EqualTo(PieceType.Bishop));
-        Assert.That(_bot.BestMove.StartSquare.Name, Is.EqualTo("g2"));
-        Assert.That(_bot.BestMove.TargetSquare.Name, Is.EqualTo("e4"));
-    }
     
     #endregion
 
     #region Starting position
-    
+
     [Test]
     /*
      * Info: depth:  2 || eval:     12 || nodes:       183 || nps:    16636 || time:    10ms || best move: g1f3
@@ -264,15 +217,15 @@ public class MyBotTest
     {
         _testBoard = Board.CreateBoardFromFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
         _bot.Board = _testBoard;
-            
+
         for (int depth = 1; depth <= 11; depth++)
         {
-            int score = _bot.Pvs( depth, 0, -100000, 100000, true);
+            int score = _bot.Pvs(depth, 0, -100000, 100000);
             LogAll(depth, score);
         }
+
         Assert.That(_stopwatch.ElapsedMilliseconds, Is.LessThan(20000));
     }
-    
 
     #endregion
 
@@ -283,25 +236,25 @@ public class MyBotTest
     {
         _testBoard = Board.CreateBoardFromFEN("2b1kb1r/P1pppppp/4nn2/1N4q1/2B2B2/4PN1P/1PPPQPP1/R3K2R w KQk - 0 1");
         _bot.Board = _testBoard;
-        
-        int score = _bot.Pvs( 1, 0, -100000, 100000, true);
-        
+
+        int score = _bot.Pvs(1, 0, -100000, 100000);
+
         LogAll(1, score);
     }
 
     #endregion
 
     #region Checkmate
-    
+
     [Test]
     public void TestCheckMateIn1()
     {
         _testBoard = Board.CreateBoardFromFEN("r1b1r1k1/pp3ppp/1qpp4/8/2PbP3/P3p1P1/1PN1Q2P/2KR1B1R b - - 1 19");
         _bot.Board = _testBoard;
-        
+
         for (int depth = 1; depth <= 6; depth++)
         {
-            int score = _bot.Pvs( depth, 0, -100000, 100000, true);
+            int score = _bot.Pvs(depth, 0, -100000, 100000);
             LogAll(depth, score);
         }
 
@@ -315,10 +268,10 @@ public class MyBotTest
     {
         _testBoard = Board.CreateBoardFromFEN("rnbq4/pp1pkB2/3p2P1/6b1/3PP2Q/2N5/PPP1K1P1/r7 w - - 2 18");
         _bot.Board = _testBoard;
-        
+
         for (int depth = 1; depth <= 8; depth++)
         {
-            int score = _bot.Pvs(depth, 0, -100000, 100000, true);
+            int score = _bot.Pvs(depth, 0, -100000, 100000);
             LogAll(depth, score);
         }
 
@@ -326,7 +279,25 @@ public class MyBotTest
         Assert.That(_bot.BestMove.StartSquare.Name, Is.EqualTo("c3"));
         Assert.That(_bot.BestMove.TargetSquare.Name, Is.EqualTo("d5"));
     }
-    
+
+    [Test]
+    public void TestCheckMateByQueenSacrafice()
+    {
+        // Checkmate by queen sacrifice
+        _testBoard = Board.CreateBoardFromFEN("2r2bk1/p5p1/1p1p2Qp/2PNp3/PR1nNr1q/3P4/5PPP/5RK1 b - - 0 1");
+        _bot.Board = _testBoard;
+
+        for (int depth = 1; depth <= 6; depth++)
+        {
+            int score = _bot.Pvs(depth, 0, -100000, 100000);
+            LogAll(depth, score);
+        }
+
+        Assert.That(_bot.BestMove.MovePieceType, Is.EqualTo(PieceType.Knight));
+        Assert.That(_bot.BestMove.StartSquare.Name, Is.EqualTo("d4"));
+        Assert.That(_bot.BestMove.TargetSquare.Name, Is.EqualTo("e2"));
+    }
+
     #endregion
 
     #region Logging
@@ -348,7 +319,7 @@ public class MyBotTest
     #endregion
 
     #region Hardware
-    
+
     // https://github.com/SebLague/Chess-Challenge/issues/381
     [Test]
     public void Takes5SecondOnTournamentTest()
@@ -377,7 +348,6 @@ public class MyBotTest
             _testBoard.UndoMove(m);
         }
     }
-    
+
     #endregion
-    
 }

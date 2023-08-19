@@ -20,10 +20,10 @@
 -pgnout sprt.pgn
 
 
-# MyBot vs V5b
+# MyBot vs V4P1
 /Users/kevinvermaat/Documents/other/CuteChess1.3.0/CuteChess/build/cutechess-cli \
 -engine name="MyBot" cmd="/Users/kevinvermaat/Documents/other/chess-challenge-kevin/Chess-Challenge/bin/Release/net6.0/Chess-Challenge" arg="uci" arg="MyBot" \
--engine name="V5b" cmd="/Users/kevinvermaat/Documents/other/chess-challenge-kevin/Chess-Challenge/bin/Release/net6.0/Chess-Challenge" arg="uci" arg="V5b" \
+-engine name="V4P1" cmd="/Users/kevinvermaat/Documents/other/chess-challenge-kevin/Chess-Challenge/bin/Release/net6.0/Chess-Challenge" arg="uci" arg="V4P1" \
 -openings file=/Users/kevinvermaat/Documents/other/chess-challenge-kevin/Chess-Challenge/resources/Custom/UHO_XXL_+0.80_+1.09.pgn format=pgn order=random plies=8 \
 -each proto=uci tc=60+0 restart=on \
 -concurrency 10 -maxmoves 200 -rounds 200 \

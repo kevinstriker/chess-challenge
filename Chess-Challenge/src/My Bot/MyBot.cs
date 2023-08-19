@@ -31,11 +31,11 @@ public class MyBot : IChessBot
     public Timer Timer;
     public Board Board;
     public int TimeLimit;
-
+    
     // Keep track on the best move
     public Move BestMove;
 
-    public int Pvs(int depth, int plyFromRoot, int alpha, int beta, bool canNullMove)
+    public int Pvs(int depth, int plyFromRoot, int alpha, int beta)
     {
         // Reuse search variables
         bool notRoot = plyFromRoot++ > 0,
@@ -101,7 +101,7 @@ public class MyBot : IChessBot
             {
                 Board.ForceSkipTurn();
                 // depth - (1 + R(eduction)), using the classic 2 for reduction
-                int nullMoveEval = -Pvs(depth - 3, plyFromRoot, -beta, 1 - beta, false);
+                int nullMoveEval = -Pvs(depth - 3, plyFromRoot, -beta, 1 - beta);
                 Board.UndoSkipTurn();
                 // Prune branch when the side who got a free move can't even improve
                 if (beta <= nullMoveEval) return nullMoveEval;
@@ -132,9 +132,9 @@ public class MyBot : IChessBot
         foreach (Move move in moves)
         {
             // On certain nodes (tactical nodes), static eval, even with a wide margin, isn't safe enough to exclude
-            bool tactical = !move.IsCapture && !move.IsPromotion;
+            bool tactical = move.IsCapture || move.IsPromotion;
 
-            // Only futility prune on non tactical nodes and when we've fully searched 1 line to prevent pruning everything
+            // Futility prune on non tactical nodes and never on first move
             if (canPrune && !tactical && movesSearched > 0) continue;
 
             if (depth > 0) Nodes++;
@@ -144,12 +144,11 @@ public class MyBot : IChessBot
 
             // Principle Variation Search 
             bool isFullSearch = inQSearch || movesSearched++ == 0;
-            // Fully search first move otherwise we search with small window
-            int score = -Pvs(depth - 1, plyFromRoot, isFullSearch ? -beta : -alpha - 1, -alpha,
-                isFullSearch && canNullMove);
-            // When we improved alpha with our zero window search we'll have to fully search
+            // Fully search q search & first moves otherwise search with small window to "scout" the branch potential
+            int score = -Pvs(depth - 1, plyFromRoot, isFullSearch ? -beta : -alpha - 1, -alpha);
+            // When we improved alpha with our small window search we'll have it fully searched
             if (!isFullSearch && score > alpha)
-                score = -Pvs(depth - 1, plyFromRoot, -beta, -alpha, canNullMove);
+                score = -Pvs(depth - 1, plyFromRoot, -beta, -alpha);
 
             Board.UndoMove(move);
 
@@ -209,7 +208,7 @@ public class MyBot : IChessBot
         // Iterative deepening
         for (int depth = 1; depth < 50; depth++)
         {
-            int score = Pvs(depth, 0, -100000, 100000, true);
+            int score = Pvs(depth, 0, -100000, 100000);
             
             if (Timer.MillisecondsElapsedThisTurn * 2 > TimeLimit) break;
         }
