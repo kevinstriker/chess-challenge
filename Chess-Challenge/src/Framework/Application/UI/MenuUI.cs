@@ -25,27 +25,11 @@ namespace ChessChallenge.Application
                     : ChallengeController.PlayerType.Human;
                 controller.StartNewGame(whiteType, blackType);
             }
-
-            if (NextButtonInRow("MyBot vs MinusOne", ref buttonPos, spacing, buttonSize))
-            {
-                controller.StartNewBotMatch(ChallengeController.PlayerType.MyBot,
-                    ChallengeController.PlayerType.MinusOneBot);
-            }   
-            if (NextButtonInRow("MyBot vs V3", ref buttonPos, spacing, buttonSize))
-            {
-                controller.StartNewBotMatch(ChallengeController.PlayerType.MyBot,
-                    ChallengeController.PlayerType.V3);
-            }
-            if (NextButtonInRow("MyBot vs LBB4", ref buttonPos, spacing, buttonSize))
-            {
-                controller.StartNewBotMatch(ChallengeController.PlayerType.MyBot,
-                    ChallengeController.PlayerType.LiteBlueBot4);
-            }
             
-            if (NextButtonInRow("MyBot vs LBB5", ref buttonPos, spacing, buttonSize))
+            if (NextButtonInRow("MyBot vs LBB7", ref buttonPos, spacing, buttonSize))
             {
                 controller.StartNewBotMatch(ChallengeController.PlayerType.MyBot,
-                    ChallengeController.PlayerType.LiteBlueBot5);
+                    ChallengeController.PlayerType.LiteBlueBot7);
             }
 
             // Page buttons
