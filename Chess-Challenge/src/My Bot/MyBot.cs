@@ -25,11 +25,11 @@ public class MyBot : IChessBot
 
     // Killer moves: keep track on great moves that caused a cutoff to retry them
     // Based on a lookup by depth
-    Move[] _killers = new Move[256];
+    public Move[] Killers = new Move[256];
     
     // Globals
-    public Timer Timer;
-    public Board Board;
+    public Timer Timer; 
+    public Board Board; 
     public int TimeLimit, GamePhase;
 
     // Keep track on the best move
@@ -99,8 +99,8 @@ public class MyBot : IChessBot
             if (depth < 4 && beta <= staticEval - 100 * depth)
                 return staticEval;
 
-            // Null move pruning on pre-frontier nodes and higher
-            if (depth > 1)
+            // Null move pruning on pre-frontier nodes and higher and not in king - pawn endgames where a null move can be an advantage
+            if (depth > 1 && GamePhase > 0)
             {
                 Board.ForceSkipTurn();
                 // depth - (1 + R(eduction)), using the classic 2 for reduction
@@ -127,7 +127,7 @@ public class MyBot : IChessBot
                 move == ttBestMove ? 9_000_000 :
                 move.IsCapture ? 1_000_000 * (int)move.CapturePieceType - (int)move.MovePieceType :
                 move.IsPromotion ? 1_000_000 :
-                _killers[plyFromRoot] == move ? 900_000 :
+                Killers[plyFromRoot] == move ? 900_000 :
                 HistoryHeuristics[plyFromRoot & 1, (int)move.MovePieceType, move.TargetSquare.Index]
         ).ToArray();
 
@@ -178,7 +178,7 @@ public class MyBot : IChessBot
                     if (!move.IsCapture)
                     {
                         HistoryHeuristics[plyFromRoot & 1, (int)move.MovePieceType, move.TargetSquare.Index] += depth * depth;
-                        _killers[plyFromRoot] = move;
+                        Killers[plyFromRoot] = move;
                     }
                     break;
                 }
