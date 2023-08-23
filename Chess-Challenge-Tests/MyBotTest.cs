@@ -31,7 +31,7 @@ public class MyBotTest
         _testBoard = Board.CreateBoardFromFEN("r2q1rk1/1pp1bppp/4bn2/pP6/n2Bp3/P3P1NP/2PN1PP1/2RQKB1R b K - 2 13");
         _bot.Board = _testBoard;
 
-        for (int depth = 1; depth <= 11; depth++)
+        for (int depth = 1; depth <= 12; depth++)
         {
             int score = _bot.Pvs(depth, 0, -100000, 100000);
             LogAll(depth, score);
@@ -60,7 +60,6 @@ public class MyBotTest
         Assert.That(_bot.BestMove.TargetSquare.Name, Is.EqualTo("e1"));
     }
 
-    
 
     #endregion
     
@@ -72,7 +71,7 @@ public class MyBotTest
         _testBoard = Board.CreateBoardFromFEN("r1b1k2r/pp2nppp/2pp1q2/5P2/2BbP3/2N1B3/PP3QPP/R4RK1 b kq - 1 18");
         _bot.Board = _testBoard;
 
-        for (int depth = 1; depth <= 11; depth++)
+        for (int depth = 1; depth <= 13; depth++)
         {
             int score = _bot.Pvs(depth, 0, -100000, 100000);
             LogAll(depth, score);
@@ -90,7 +89,7 @@ public class MyBotTest
         _testBoard = Board.CreateBoardFromFEN("4rq1k/3r1p1p/3p1p2/1p1P2Q1/p1n2P2/P1P4R/1P3RPK/8 w - - 0 1");
         _bot.Board = _testBoard;
 
-        for (int depth = 1; depth <= 8; depth++)
+        for (int depth = 1; depth <= 13; depth++)
         {
             int score = _bot.Pvs(depth, 0, -100000, 100000);
             LogAll(depth, score);

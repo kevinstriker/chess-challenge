@@ -8,7 +8,7 @@ using ChessChallenge.API;
  * V2: Null move pruning, History heuristics
  * V3: Reversed futility pruning, futility pruning and from NegaMax to PVS
  * V4: Killer moves, check extensions, razoring, time management
- * V5: Pruning improvements, token savings
+ * V5: Late move reduction, token savings
  */
 public class MyBot : IChessBot
 {
@@ -17,7 +17,6 @@ public class MyBot : IChessBot
 
     // Transposition Table: keep track of positions that were already calculated and possibly re-use information
     record struct TtEntry(ulong Key, int Score, int Depth, int Flag, Move BestMove);
-
     TtEntry[] _tt = new TtEntry[0x400000];
 
     // History Heuristics: keep track on great moves that caused a cutoff to retry them
@@ -27,11 +26,11 @@ public class MyBot : IChessBot
     // Killer moves: keep track on great moves that caused a cutoff to retry them
     // Based on a lookup by depth
     Move[] _killers = new Move[256];
-
+    
     // Globals
     public Timer Timer;
     public Board Board;
-    public int TimeLimit;
+    public int TimeLimit, GamePhase;
 
     // Keep track on the best move
     public Move BestMove;
@@ -45,7 +44,11 @@ public class MyBot : IChessBot
             inCheck = Board.IsInCheck();
         int alphaStart = alpha,
             bestEval = -100_000,
-            movesSearched = 0;
+            movesSearched = 0,
+            newScore; // Here for token optimise reasons
+
+        // Using local method to simplify multiple similar calls to Pvs
+        int Search(int newAlpha, int reduction = 1) => newScore = -Pvs(depth - reduction, plyFromRoot, -newAlpha, -alpha);
 
         // Check for repetition since TT doesn't know that and we don't want draws when we can win
         if (notRoot && Board.IsRepeatedPosition()) return 0;
@@ -142,22 +145,31 @@ public class MyBot : IChessBot
             else QNodes++;
 
             Board.MakeMove(move);
-
-            // Principle Variation Search 
-            bool isFullSearch = inQSearch || movesSearched++ == 0;
-            int score = -Pvs(depth - 1, plyFromRoot, isFullSearch ? -beta : -alpha - 1, -alpha);
             
-            // When we improved alpha with our small window search we'll have it fully searched
-            if (!isFullSearch && score > alpha)
-                score = -Pvs(depth - 1, plyFromRoot, -beta, -alpha);
+            // PVS + LMR
+            
+            // Full search in Q search or on first move
+            if (inQSearch || movesSearched++ == 0) {
+                Search(beta);
+            } else {
+                // Late move reduction search
+                if (!tactical && !inCheck && movesSearched > 5 && depth > 2) Search(alpha + 1, 3);
+                // Hack to ensure we'll go into the try for full search
+                else newScore = alpha + 1; 
+                
+                // Check if our reduced search beats alpha, if so try a full depth zero window search and if it also beats alpha fully search
+                if (newScore > alpha && Search(alpha + 1) > alpha) {
+                    Search(beta);
+                }
+            }
 
             Board.UndoMove(move);
 
-            if (score > bestEval)
+            if (newScore > bestEval)
             {
                 if (!notRoot) BestMove = move;
                 bestMove = move;
-                bestEval = score;
+                bestEval = newScore;
                 alpha = Math.Max(alpha, bestEval);
 
                 // Beta cutoff, move is too good, opposing player has a better option (beta) and won't play this subtree
@@ -165,11 +177,9 @@ public class MyBot : IChessBot
                 {
                     if (!move.IsCapture)
                     {
-                        HistoryHeuristics[plyFromRoot & 1, (int)move.MovePieceType, move.TargetSquare.Index] +=
-                            depth * depth;
+                        HistoryHeuristics[plyFromRoot & 1, (int)move.MovePieceType, move.TargetSquare.Index] += depth * depth;
                         _killers[plyFromRoot] = move;
                     }
-
                     break;
                 }
             }
@@ -209,8 +219,11 @@ public class MyBot : IChessBot
         {
             int score = Pvs(depth, 0, -100000, 100000);
 
+            DebugHelper.LogDepth(Timer, depth, score, this);
+            
             if (Timer.MillisecondsElapsedThisTurn > TimeLimit) break;
         }
+        Console.WriteLine();
 
         return BestMove;
     }
@@ -265,13 +278,14 @@ public class MyBot : IChessBot
 
     private int Evaluate()
     {
-        int mg = 0, eg = 0, phase = 0, sideToMove = 2, piece, squareIndex;
+        GamePhase = 0;
+        int mg = 0, eg = 0, sideToMove = 2, piece, squareIndex;
         for (; --sideToMove >= 0; mg = -mg, eg = -eg)
         for (piece = -1; ++piece < 6;)
         for (ulong mask = Board.GetPieceBitboard((PieceType)piece + 1, sideToMove > 0); mask != 0;)
         {
             // The less pieces, the more we bend towards our endgame strategy
-            phase += _gamePhaseIncrement[piece];
+            GamePhase += _gamePhaseIncrement[piece];
 
             // A number between 0 to 63 that indicates which square the piece is on, flip for black
             squareIndex = BitboardHelper.ClearAndGetIndexOfLSB(ref mask) ^ 56 * sideToMove;
@@ -282,7 +296,7 @@ public class MyBot : IChessBot
         }
 
         // Tapered eval
-        return (mg * phase + eg * (24 - phase)) / 24 * (Board.IsWhiteToMove ? 1 : -1);
+        return (mg * GamePhase + eg * (24 - GamePhase)) / 24 * (Board.IsWhiteToMove ? 1 : -1);
     }
 
     #endregion

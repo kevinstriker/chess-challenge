@@ -7,18 +7,21 @@ using System.Linq;
 
 public class LiteBlueBot7 : IChessBot
 {
+    public int Nodes;
+    public int QNodes;
+    
     // Define globals to save tokens
-    private Board board;
-    private Timer timer;
-    private int time_limit;
-    private Move best_move_root;
-    private int[,,] history_table;
-    private int gamephase;
+    public Board Board;
+    public Timer Timer;
+    public int TimeLimit;
+    public Move BestMove;
+    public int[,,] HistoryTable;
+    public int Gamephase;
     // Move[] killer_moves = new Move[128];
-    private readonly int[] move_scores = new int[256];
+    public readonly int[] MoveScores = new int[256];
 
     // TT Definition
-    private readonly (ulong, int, Move, int, int)[] tt = new (ulong, int, Move, int, int)[0x400000];
+    private readonly (ulong, int, Move, int, int)[] _tt = new (ulong, int, Move, int, int)[0x400000];
 
 #if UCI
     private long nodes;
@@ -27,10 +30,13 @@ public class LiteBlueBot7 : IChessBot
     // Required Think Method
     public Move Think(Board _board, Timer _timer)
     {
-        board = _board;
-        timer = _timer;
-        time_limit = timer.MillisecondsRemaining / 30;
-        history_table = new int[2, 7, 64];
+        Nodes = 0;
+        QNodes = 0;
+        
+        Board = _board;
+        Timer = _timer;
+        TimeLimit = Timer.MillisecondsRemaining / 30;
+        HistoryTable = new int[2, 7, 64];
 #if SLOW
         time_limit = timer.MillisecondsRemaining / 1;
 #endif
@@ -43,7 +49,7 @@ public class LiteBlueBot7 : IChessBot
             int score = Negamax(depth, 0, alpha, beta, true);
 
             // Check if time is expired
-            if (timer.MillisecondsElapsedThisTurn > time_limit)
+            if (Timer.MillisecondsElapsedThisTurn > TimeLimit)
                 break;
 
             if (score <= alpha) alpha -= 100;
@@ -86,10 +92,10 @@ public class LiteBlueBot7 : IChessBot
         Console.WriteLine();
 #endif
 
-        return best_move_root;
+        return BestMove;
     }
 
-    private int Negamax(int depth, int ply, int alpha, int beta, bool do_null)
+    public int Negamax(int depth, int ply, int alpha, int beta, bool do_null = true)
     {
         // Increment node counter
 #if UCI
@@ -97,16 +103,16 @@ public class LiteBlueBot7 : IChessBot
 #endif
         // Define search variables
         bool root = ply++ == 0,
-            in_check = board.IsInCheck(),
+            in_check = Board.IsInCheck(),
             pv_node = beta - alpha > 1;
 
         // Check for draw by repetition
-        if (!root && board.IsRepeatedPosition()) return 0;
+        if (!root && Board.IsRepeatedPosition()) return 0;
 
         if (in_check) depth++;
 
-        ulong key = board.ZobristKey;
-        ref var tt_entry = ref tt[key & 0x3FFFFF];
+        ulong key = Board.ZobristKey;
+        ref var tt_entry = ref _tt[key & 0x3FFFFF];
         int best_score = -200000,
             moves_scored = 0,
             tt_entry_score = tt_entry.Item2,
@@ -137,11 +143,11 @@ public class LiteBlueBot7 : IChessBot
             // Reverse Futility Pruning
             if (depth < 7 && static_eval - 109 * depth >= beta) return static_eval;
             // Null Move Pruning
-            if (do_null && depth >= 2 && gamephase > 0)
+            if (do_null && depth >= 2 && Gamephase > 0)
             {
-                board.TrySkipTurn();
+                Board.TrySkipTurn();
                 int score = -Negamax(depth - 3 - depth / 4, ply, -beta, -alpha, false);
-                board.UndoSkipTurn();
+                Board.UndoSkipTurn();
                 if (score >= beta) return score;
             }
             // Futility Pruning Check
@@ -153,11 +159,11 @@ public class LiteBlueBot7 : IChessBot
 
         // Generate appropriate moves depending on whether we're in QSearch
         Span<Move> moves = stackalloc Move[256];
-        board.GetLegalMovesNonAlloc(ref moves, q_search && !in_check);
+        Board.GetLegalMovesNonAlloc(ref moves, q_search && !in_check);
 
         // Order moves in reverse order -> negative values are ordered higher hence the flipped values
         foreach (Move move in moves)
-            move_scores[moves_scored++] = -(
+            MoveScores[moves_scored++] = -(
                 // Hash move
                 move == tt_entry.Item3 ? 10_000_000 :
                 // MVV-LVA
@@ -167,10 +173,10 @@ public class LiteBlueBot7 : IChessBot
                 // Killer Moves
                 // move == killer_moves[ply] ? 900_000 :
                 // History Heuristic
-                history_table[ply & 1, (int)move.MovePieceType, move.TargetSquare.Index]
+                HistoryTable[ply & 1, (int)move.MovePieceType, move.TargetSquare.Index]
             );
 
-        move_scores.AsSpan(0, moves.Length).Sort(moves);
+        MoveScores.AsSpan(0, moves.Length).Sort(moves);
 
         // If there are no moves return either checkmate or draw
         if (!q_search && moves.Length == 0) return in_check ? ply - 100000 : 0;
@@ -186,16 +192,25 @@ public class LiteBlueBot7 : IChessBot
             // Futility Pruning
             if (can_futility_prune && !(move.IsCapture || move.IsPromotion) && i > 0) continue;
 
-            board.MakeMove(move);
-            // PVS + LMR (Saves tokens, I will not explain, ask Tyrant)
-            if (i == 0 || q_search)
+            // Debug
+            if (depth > 0) Nodes++;
+            else QNodes++;
+            
+            Board.MakeMove(move);
+            if (i == 0 || q_search) {
                 Search(beta);
-            else if ((i < 6 || depth < 3 ?
-                        new_score = alpha + 1 :
-                        Search(alpha + 1, 3)) > alpha &&
-                    Search(alpha + 1) > alpha)
-                Search(beta);
-            board.UndoMove(move);
+            } else {
+                if (i < 6 || depth < 3) {
+                    new_score = alpha + 1;
+                } else {
+                    new_score = Search(alpha + 1, 3);
+                }
+
+                if (new_score > alpha && Search(alpha + 1) > alpha) {
+                    Search(beta);
+                }
+            }
+            Board.UndoMove(move);
 
             if (new_score > best_score)
             {
@@ -203,7 +218,7 @@ public class LiteBlueBot7 : IChessBot
                 best_move = move;
 
                 // Update bestmove
-                if (root) best_move_root = move;
+                if (root) BestMove = move;
                 // Improve alpha
                 alpha = Math.Max(alpha, best_score);
                 // Beta Cutoff
@@ -211,7 +226,7 @@ public class LiteBlueBot7 : IChessBot
                 {
                     if (!q_search && !move.IsCapture)
                         // {
-                        history_table[ply & 1, (int)move.MovePieceType, move.TargetSquare.Index] += depth * depth;
+                        HistoryTable[ply & 1, (int)move.MovePieceType, move.TargetSquare.Index] += depth * depth;
                     // killer_moves[ply] = best_move;
                     // }
                     break;
@@ -219,12 +234,12 @@ public class LiteBlueBot7 : IChessBot
             }
 
             // Check if time is expired
-            if (timer.MillisecondsElapsedThisTurn > time_limit) return 200000;
+            if (Timer.MillisecondsElapsedThisTurn > TimeLimit) return 200000;
             i++;
         }
 
         // Save position to transposition table
-        tt[key & 0x3FFFFF] = (
+        _tt[key & 0x3FFFFF] = (
             key,
             best_score,
             best_move,
@@ -249,20 +264,20 @@ public class LiteBlueBot7 : IChessBot
     private int Eval()
     {
         int middlegame = 0, endgame = 0, sideToMove = 2, piece, square;
-        gamephase = 0;
+        Gamephase = 0;
         for (; --sideToMove >= 0; middlegame = -middlegame, endgame = -endgame)
             for (piece = -1; ++piece < 6;)
-                for (ulong mask = board.GetPieceBitboard((PieceType)piece + 1, sideToMove > 0); mask != 0;)
+                for (ulong mask = Board.GetPieceBitboard((PieceType)piece + 1, sideToMove > 0); mask != 0;)
                 {
                     // Gamephase, middlegame -> endgame
-                    gamephase += phase_weight[piece];
+                    Gamephase += phase_weight[piece];
 
                     // Material and square evaluation
                     square = BitboardHelper.ClearAndGetIndexOfLSB(ref mask) ^ 56 * sideToMove;
                     middlegame += UnpackedPestoTables[square][piece];
                     endgame += UnpackedPestoTables[square][piece + 6];
                 }
-        return (middlegame * gamephase + endgame * (24 - gamephase)) / 24 * (board.IsWhiteToMove ? 1 : -1);
+        return (middlegame * Gamephase + endgame * (24 - Gamephase)) / 24 * (Board.IsWhiteToMove ? 1 : -1);
     }
 
     public LiteBlueBot7()
