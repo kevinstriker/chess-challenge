@@ -1,14 +1,3 @@
-# MyBot vs Minus One - My last version
-/Users/kevinvermaat/Documents/other/CuteChess1.3.0/CuteChess/build/cutechess-cli \
--engine name="MyBot" cmd="/Users/kevinvermaat/Documents/other/chess-challenge-kevin/Chess-Challenge/bin/Release/net6.0/Chess-Challenge" arg="uci" arg="MyBot" \
--engine name="MinusOneBot" cmd="/Users/kevinvermaat/Documents/other/chess-challenge-kevin/Chess-Challenge/bin/Release/net6.0/Chess-Challenge" arg="uci" arg="MinusOneBot" \
--openings file=/Users/kevinvermaat/Documents/other/chess-challenge-kevin/Chess-Challenge/resources/Custom/UHO_XXL_+0.80_+1.09.pgn format=pgn order=random plies=8 \
--each proto=uci tc=60+0 restart=on \
--concurrency 10 -maxmoves 200 -rounds 100 \
--sprt elo0=0 elo1=10 alpha=0.10 beta=0.10 \
--pgnout sprt.pgn
-
-
 # MyBot vs V4
 /Users/kevinvermaat/Documents/other/CuteChess1.3.0/CuteChess/build/cutechess-cli \
 -engine name="MyBot" cmd="/Users/kevinvermaat/Documents/other/chess-challenge-kevin/Chess-Challenge/bin/Release/net6.0/Chess-Challenge" arg="uci" arg="MyBot" \
@@ -19,13 +8,22 @@
 -sprt elo0=0 elo1=10 alpha=0.10 beta=0.10 \
 -pgnout sprt.pgn
 
-
-# MyBot vs V5Alpha
+# MyBot vs TyrantBot7
 /Users/kevinvermaat/Documents/other/CuteChess1.3.0/CuteChess/build/cutechess-cli \
 -engine name="MyBot" cmd="/Users/kevinvermaat/Documents/other/chess-challenge-kevin/Chess-Challenge/bin/Release/net6.0/Chess-Challenge" arg="uci" arg="MyBot" \
--engine name="V5Alpha" cmd="/Users/kevinvermaat/Documents/other/chess-challenge-kevin/Chess-Challenge/bin/Release/net6.0/Chess-Challenge" arg="uci" arg="V5Alpha" \
+-engine name="TyrantBot6" cmd="/Users/kevinvermaat/Documents/other/chess-challenge-kevin/Chess-Challenge/bin/Release/net6.0/Chess-Challenge" arg="uci" arg="TyrantBot6" \
 -openings file=/Users/kevinvermaat/Documents/other/chess-challenge-kevin/Chess-Challenge/resources/Custom/UHO_XXL_+0.80_+1.09.pgn format=pgn order=random plies=8 \
--each proto=uci tc=8+0.08 restart=on \
+-each proto=uci tc=60+0.00 restart=on \
+-concurrency 3 -maxmoves 200 -rounds 200 \
+-sprt elo0=0 elo1=10 alpha=0.10 beta=0.10 \
+-pgnout sprt.pgn
+
+# MyBot vs TyrantBot7
+/Users/kevinvermaat/Documents/other/CuteChess1.3.0/CuteChess/build/cutechess-cli \
+-engine name="MyBot" cmd="/Users/kevinvermaat/Documents/other/chess-challenge-kevin/Chess-Challenge/bin/Release/net6.0/Chess-Challenge" arg="uci" arg="MyBot" \
+-engine name="TyrantBot7" cmd="/Users/kevinvermaat/Documents/other/chess-challenge-kevin/Chess-Challenge/bin/Release/net6.0/Chess-Challenge" arg="uci" arg="TyrantBot7" \
+-openings file=/Users/kevinvermaat/Documents/other/chess-challenge-kevin/Chess-Challenge/resources/Custom/UHO_XXL_+0.80_+1.09.pgn format=pgn order=random plies=8 \
+-each proto=uci tc=60+0.00 restart=on \
 -concurrency 10 -maxmoves 200 -rounds 200 \
 -sprt elo0=0 elo1=10 alpha=0.10 beta=0.10 \
 -pgnout sprt.pgn

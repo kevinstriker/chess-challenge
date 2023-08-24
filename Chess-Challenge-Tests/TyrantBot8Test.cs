@@ -1,39 +1,61 @@
 using System.Diagnostics;
 using ChessChallenge.API;
+using ChessChallenge.Example;
 using Timer = ChessChallenge.API.Timer;
 
 namespace Chess_Challenge_Tests;
 
-public class V5AlphaTest
+public class TyrantBot8Test
 {
-    private V5 _bot;
+    private TyrantBot8 _bot;
     private Board _testBoard;
     private Stopwatch _stopwatch;
-
+    
     [SetUp]
     public void Setup()
     {
-        _bot = new V5()
+        _bot = new TyrantBot8()
         {
             Timer = new Timer(60000000, 60000000, 0),
-            TimeLimit = 1000000000,
-            HistoryHeuristics = new int[2, 7, 64],
+            HistoryTable = new int[2, 7, 64],
+            TimeLimit = 100000000
         };
         _stopwatch = Stopwatch.StartNew();
     }
 
+    #region Nolot
+
+    [Test]
+    public void TestPuzzle1()
+    {
+        _testBoard = Board.CreateBoardFromFEN("r2qk2r/ppp1b1pp/2n1p3/3pP1n1/3P2b1/2PB1NN1/PP4PP/R1BQK2R w KQkq - 0 1");
+        _bot.Board = _testBoard;
+
+        for (int depth = 1; depth <= 16; depth++)
+        {
+            int score = _bot.PVS(depth, -100000, 100000, 0, true);
+            LogAll(depth, score);
+        }
+
+
+        Assert.That(_bot.BestMove.MovePieceType, Is.EqualTo(PieceType.Knight));
+        Assert.That(_bot.BestMove.StartSquare.Name, Is.EqualTo("g4"));
+        Assert.That(_bot.BestMove.TargetSquare.Name, Is.EqualTo("h6"));
+    }
+
+    #endregion
+    
     #region Higher Depth
 
     [Test]
     public void TestGiveUpQueenToWinItBack()
     {
-        // Give up queen to win one later
         _testBoard = Board.CreateBoardFromFEN("r2q1rk1/1pp1bppp/4bn2/pP6/n2Bp3/P3P1NP/2PN1PP1/2RQKB1R b K - 2 13");
         _bot.Board = _testBoard;
 
-        for (int depth = 1; depth <= 11; depth++)
+        for (int depth = 1; depth <= 15; depth++)
         {
-            int score = _bot.Pvs(depth, 0, -100000, 100000);
+            int score = _bot.PVS(depth, -100000, 100000, 0, true);
             LogAll(depth, score);
         }
 
@@ -45,13 +67,12 @@ public class V5AlphaTest
     [Test]
     public void TestKingSafetyDoNotTakePawn()
     {
-        // Do not take pawn with king since it will lose the queen much later
         _testBoard = Board.CreateBoardFromFEN("5rk1/2p2qp1/3b3p/8/2PQ4/3P3P/Pr1B1Pp1/3R1RK1 w - - 0 23");
         _bot.Board = _testBoard;
 
-        for (int depth = 1; depth <= 13; depth++)
+        for (int depth = 1; depth <= 16; depth++)
         {
-            int score = _bot.Pvs(depth, 0, -100000, 100000);
+            int score = _bot.PVS(depth, -100000, 100000, 0, true);
             LogAll(depth, score);
         }
 
@@ -61,7 +82,6 @@ public class V5AlphaTest
     }
 
     
-
     #endregion
     
     #region Lower Depth
@@ -74,7 +94,7 @@ public class V5AlphaTest
 
         for (int depth = 1; depth <= 11; depth++)
         {
-            int score = _bot.Pvs(depth, 0, -100000, 100000);
+            int score = _bot.PVS(depth, -100000, 100000, 0, true);
             LogAll(depth, score);
         }
 
@@ -90,9 +110,9 @@ public class V5AlphaTest
         _testBoard = Board.CreateBoardFromFEN("4rq1k/3r1p1p/3p1p2/1p1P2Q1/p1n2P2/P1P4R/1P3RPK/8 w - - 0 1");
         _bot.Board = _testBoard;
 
-        for (int depth = 1; depth <= 8; depth++)
+        for (int depth = 1; depth <= 15; depth++)
         {
-            int score = _bot.Pvs(depth, 0, -100000, 100000);
+            int score = _bot.PVS(depth, -100000, 100000, 0, true);
             LogAll(depth, score);
         }
 
@@ -109,7 +129,7 @@ public class V5AlphaTest
 
         for (int depth = 1; depth <= 8; depth++)
         {
-            int score = _bot.Pvs(depth, 0, -100000, 100000);
+            int score = _bot.PVS(depth, -100000, 100000, 0, true);
             LogAll(depth, score);
         }
 
@@ -126,7 +146,7 @@ public class V5AlphaTest
 
         for (int depth = 1; depth <= 8; depth++)
         {
-            int score = _bot.Pvs(depth, 0, -100000, 100000);
+            int score = _bot.PVS(depth, -100000, 100000, 0, true);
             LogAll(depth, score);
         }
 
@@ -144,7 +164,7 @@ public class V5AlphaTest
 
         for (int depth = 1; depth <= 10; depth++)
         {
-            int score = _bot.Pvs(depth, 0, -100000, 100000);
+            int score = _bot.PVS(depth, -100000, 100000, 0, true);
             LogAll(depth, score);
         }
 
@@ -161,7 +181,7 @@ public class V5AlphaTest
 
         for (int depth = 1; depth <= 8; depth++)
         {
-            int score = _bot.Pvs(depth, 0, -100000, 100000);
+            int score = _bot.PVS(depth, -100000, 100000, 0, true);
             LogAll(depth, score);
         }
 
@@ -180,7 +200,7 @@ public class V5AlphaTest
 
         for (int depth = 1; depth <= 9; depth++)
         {
-            int score = _bot.Pvs(depth, 0, -100000, 100000);
+            int score = _bot.PVS(depth, -100000, 100000, 0, true);
             LogAll(depth, score);
         }
 
@@ -220,7 +240,7 @@ public class V5AlphaTest
 
         for (int depth = 1; depth <= 11; depth++)
         {
-            int score = _bot.Pvs(depth, 0, -100000, 100000);
+            int score = _bot.PVS(depth, -100000, 100000, 0, true);
             LogAll(depth, score);
         }
 
@@ -237,7 +257,7 @@ public class V5AlphaTest
         _testBoard = Board.CreateBoardFromFEN("2b1kb1r/P1pppppp/4nn2/1N4q1/2B2B2/4PN1P/1PPPQPP1/R3K2R w KQk - 0 1");
         _bot.Board = _testBoard;
 
-        int score = _bot.Pvs(1, 0, -100000, 100000);
+        int score = _bot.PVS(1, 0, -100000, 100000, true);
 
         LogAll(1, score);
     }
@@ -254,7 +274,7 @@ public class V5AlphaTest
 
         for (int depth = 1; depth <= 6; depth++)
         {
-            int score = _bot.Pvs(depth, 0, -100000, 100000);
+            int score = _bot.PVS(depth, -100000, 100000, 0, true);
             LogAll(depth, score);
         }
 
@@ -271,7 +291,7 @@ public class V5AlphaTest
 
         for (int depth = 1; depth <= 8; depth++)
         {
-            int score = _bot.Pvs(depth, 0, -100000, 100000);
+            int score = _bot.PVS(depth, -100000, 100000, 0, true);
             LogAll(depth, score);
         }
 
@@ -289,7 +309,7 @@ public class V5AlphaTest
 
         for (int depth = 1; depth <= 6; depth++)
         {
-            int score = _bot.Pvs(depth, 0, -100000, 100000);
+            int score = _bot.PVS(depth, -100000, 100000, 0, true);
             LogAll(depth, score);
         }
 

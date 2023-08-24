@@ -8,16 +8,15 @@ using ChessChallenge.API;
  * V2: Null move pruning, History heuristics
  * V3: Reversed futility pruning, futility pruning and from NegaMax to PVS
  * V4: Killer moves, check extensions, razoring, time management
- * V5: Pruning improvements, token savings
+ * V5: Late move reduction, token savings
  */
-public class V5Alpha : IChessBot
+public class V5 : IChessBot
 {
     public int Nodes;
     public int QNodes;
 
     // Transposition Table: keep track of positions that were already calculated and possibly re-use information
     record struct TtEntry(ulong Key, int Score, int Depth, int Flag, Move BestMove);
-
     TtEntry[] _tt = new TtEntry[0x400000];
 
     // History Heuristics: keep track on great moves that caused a cutoff to retry them
@@ -26,12 +25,12 @@ public class V5Alpha : IChessBot
 
     // Killer moves: keep track on great moves that caused a cutoff to retry them
     // Based on a lookup by depth
-    Move[] _killers = new Move[256];
-
+    public Move[] Killers = new Move[256];
+    
     // Globals
-    public Timer Timer;
-    public Board Board;
-    public int TimeLimit;
+    public Timer Timer; 
+    public Board Board; 
+    public int TimeLimit, GamePhase;
 
     // Keep track on the best move
     public Move BestMove;
@@ -45,7 +44,11 @@ public class V5Alpha : IChessBot
             inCheck = Board.IsInCheck();
         int alphaStart = alpha,
             bestEval = -100_000,
-            movesSearched = 0;
+            movesSearched = 0,
+            newScore; // Here for token optimise reasons
+
+        // Using local method to simplify multiple similar calls to Pvs
+        int Search(int newAlpha, int reduction = 1) => newScore = -Pvs(depth - reduction, plyFromRoot, -newAlpha, -alpha);
 
         // Check for repetition since TT doesn't know that and we don't want draws when we can win
         if (notRoot && Board.IsRepeatedPosition()) return 0;
@@ -96,8 +99,8 @@ public class V5Alpha : IChessBot
             if (depth < 4 && beta <= staticEval - 100 * depth)
                 return staticEval;
 
-            // Null move pruning on pre-frontier nodes and higher
-            if (depth > 1)
+            // Null move pruning on pre-frontier nodes and higher and not in king - pawn endgames where a null move can be an advantage
+            if (depth > 1 && GamePhase > 0)
             {
                 Board.ForceSkipTurn();
                 // depth - (1 + R(eduction)), using the classic 2 for reduction
@@ -124,7 +127,7 @@ public class V5Alpha : IChessBot
                 move == ttBestMove ? 9_000_000 :
                 move.IsCapture ? 1_000_000 * (int)move.CapturePieceType - (int)move.MovePieceType :
                 move.IsPromotion ? 1_000_000 :
-                _killers[plyFromRoot] == move ? 900_000 :
+                Killers[plyFromRoot] == move ? 900_000 :
                 HistoryHeuristics[plyFromRoot & 1, (int)move.MovePieceType, move.TargetSquare.Index]
         ).ToArray();
 
@@ -142,22 +145,31 @@ public class V5Alpha : IChessBot
             else QNodes++;
 
             Board.MakeMove(move);
-
-            // Principle Variation Search 
-            bool isFullSearch = inQSearch || movesSearched++ == 0;
-            int score = -Pvs(depth - 1, plyFromRoot, isFullSearch ? -beta : -alpha - 1, -alpha);
             
-            // When we improved alpha with our small window search we'll have it fully searched
-            if (!isFullSearch && score > alpha)
-                score = -Pvs(depth - 1, plyFromRoot, -beta, -alpha);
+            // PVS + LMR
+            
+            // Full search in Q search or on first move
+            if (inQSearch || movesSearched++ == 0) {
+                Search(beta);
+            } else {
+                // Late move reduction search
+                if (!tactical && !inCheck && movesSearched > 5 && depth > 2) Search(alpha + 1, 3);
+                // Hack to ensure we'll go into the try for full search
+                else newScore = alpha + 1; 
+                
+                // Check if our reduced search beats alpha, if so try a full depth zero window search and if it also beats alpha fully search
+                if (newScore > alpha && Search(alpha + 1) > alpha) {
+                    Search(beta);
+                }
+            }
 
             Board.UndoMove(move);
 
-            if (score > bestEval)
+            if (newScore > bestEval)
             {
                 if (!notRoot) BestMove = move;
                 bestMove = move;
-                bestEval = score;
+                bestEval = newScore;
                 alpha = Math.Max(alpha, bestEval);
 
                 // Beta cutoff, move is too good, opposing player has a better option (beta) and won't play this subtree
@@ -165,11 +177,9 @@ public class V5Alpha : IChessBot
                 {
                     if (!move.IsCapture)
                     {
-                        HistoryHeuristics[plyFromRoot & 1, (int)move.MovePieceType, move.TargetSquare.Index] +=
-                            depth * depth;
-                        _killers[plyFromRoot] = move;
+                        HistoryHeuristics[plyFromRoot & 1, (int)move.MovePieceType, move.TargetSquare.Index] += depth * depth;
+                        Killers[plyFromRoot] = move;
                     }
-
                     break;
                 }
             }
@@ -208,7 +218,7 @@ public class V5Alpha : IChessBot
         for (int depth = 1; depth < 50; depth++)
         {
             int score = Pvs(depth, 0, -100000, 100000);
-
+            
             if (Timer.MillisecondsElapsedThisTurn > TimeLimit) break;
         }
 
@@ -230,7 +240,7 @@ public class V5Alpha : IChessBot
     // The unpacked piece square lookup table
     private readonly int[][] _pst;
 
-    public V5Alpha()
+    public V5()
     {
         _pst = new[]
         {
@@ -265,13 +275,14 @@ public class V5Alpha : IChessBot
 
     private int Evaluate()
     {
-        int mg = 0, eg = 0, phase = 0, sideToMove = 2, piece, squareIndex;
+        GamePhase = 0;
+        int mg = 0, eg = 0, sideToMove = 2, piece, squareIndex;
         for (; --sideToMove >= 0; mg = -mg, eg = -eg)
         for (piece = -1; ++piece < 6;)
         for (ulong mask = Board.GetPieceBitboard((PieceType)piece + 1, sideToMove > 0); mask != 0;)
         {
             // The less pieces, the more we bend towards our endgame strategy
-            phase += _gamePhaseIncrement[piece];
+            GamePhase += _gamePhaseIncrement[piece];
 
             // A number between 0 to 63 that indicates which square the piece is on, flip for black
             squareIndex = BitboardHelper.ClearAndGetIndexOfLSB(ref mask) ^ 56 * sideToMove;
@@ -282,7 +293,7 @@ public class V5Alpha : IChessBot
         }
 
         // Tapered eval
-        return (mg * phase + eg * (24 - phase)) / 24 * (Board.IsWhiteToMove ? 1 : -1);
+        return (mg * GamePhase + eg * (24 - GamePhase)) / 24 * (Board.IsWhiteToMove ? 1 : -1);
     }
 
     #endregion

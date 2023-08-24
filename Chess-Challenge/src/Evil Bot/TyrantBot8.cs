@@ -21,18 +21,21 @@ public class TyrantBot8 : IChessBot
     // 0x400000 represents the rough number of entries it would take to fill 256mb
     // Very lowballed to make sure I don't go over
     // Hash, Move, Score, Depth, Flag
-    private readonly (ulong, Move, int, int, int)[] transpositionTable = new (ulong, Move, int, int, int)[0x400000];
+    private readonly (ulong, Move, int, int, int)[] _transpositionTable = new (ulong, Move, int, int, int)[0x400000];
 
-    private int searchMaxTime;
-    private Timer searchTimer;
+    public int Nodes;
+    public int QNodes;
+    
+    public int TimeLimit;
+    public Timer Timer;
 
-    private int[,,] historyHeuristics;
-    private readonly Move[] killers = new Move[2048];
+    public int[,,] HistoryTable;
+    public readonly Move[] Killers = new Move[2048];
 
-    private readonly int[] moveScores = new int[218];
+    public readonly int[] moveScores = new int[218];
 
-    Board board;
-    Move rootMove;
+    public Board Board;
+    public Move BestMove;
 
 #if DEBUG
     long nodes;
@@ -44,16 +47,18 @@ public class TyrantBot8 : IChessBot
         Console.WriteLine();
         nodes = 0;
 #endif
+        Nodes = 0;
+        QNodes = 0;
 
         // Cache the board to save precious tokens
-        board = newBoard;
+        Board = newBoard;
 
         // Reset history tables
-        historyHeuristics = new int[2, 7, 64];
+        HistoryTable = new int[2, 7, 64];
 
         // 1/30th of our remaining time, split among all of the moves
-        searchMaxTime = timer.MillisecondsRemaining / 30;
-        searchTimer = timer;
+        TimeLimit = timer.MillisecondsRemaining / 30;
+        Timer = timer;
 
         // Progressively increase search depth, starting from 2
         for (int depth = 2, alpha = -999999, beta = 999999, eval; ;)
@@ -61,8 +66,8 @@ public class TyrantBot8 : IChessBot
             eval = PVS(depth, alpha, beta, 0, true);
 
             // Out of time
-            if (searchTimer.MillisecondsElapsedThisTurn > searchMaxTime)
-                return rootMove;
+            if (Timer.MillisecondsElapsedThisTurn > TimeLimit)
+                return BestMove;
 
             // Gradual widening
             // Fell outside window, retry with wider window search
@@ -101,23 +106,23 @@ public class TyrantBot8 : IChessBot
     #region Search
 
     // This method doubles as our PVS and QSearch in order to save tokens
-    private int PVS(int depth, int alpha, int beta, int plyFromRoot, bool allowNull)
+    public int PVS(int depth, int alpha, int beta, int plyFromRoot, bool allowNull)
     {
 #if DEBUG
         nodes++;
 #endif
 
         // Declare some reused variables
-        bool inCheck = board.IsInCheck(),
+        bool inCheck = Board.IsInCheck(),
             canFPrune = false,
             isRoot = plyFromRoot++ == 0;
 
         // Draw detection
-        if (!isRoot && board.IsRepeatedPosition())
+        if (!isRoot && Board.IsRepeatedPosition())
             return 0;
 
-        ulong zobristKey = board.ZobristKey;
-        ref var entry = ref transpositionTable[zobristKey & 0x3FFFFF];
+        ulong zobristKey = Board.ZobristKey;
+        ref var entry = ref _transpositionTable[zobristKey & 0x3FFFFF];
 
         // Define best eval all the way up here to generate the standing pattern for QSearch
         int bestEval = -9999999,
@@ -175,9 +180,9 @@ public class TyrantBot8 : IChessBot
             // NULL move pruning
             if (depth >= 2 && allowNull)
             {
-                board.ForceSkipTurn();
+                Board.ForceSkipTurn();
                 Search(beta, 3 + (depth >> 2), false);
-                board.UndoSkipTurn();
+                Board.UndoSkipTurn();
 
                 // Failed high on the null move
                 if (eval >= beta)
@@ -197,7 +202,7 @@ public class TyrantBot8 : IChessBot
 
         // Generate appropriate moves depending on whether we're in QSearch
         Span<Move> moveSpan = stackalloc Move[218];
-        board.GetLegalMovesNonAlloc(ref moveSpan, inQSearch && !inCheck);
+        Board.GetLegalMovesNonAlloc(ref moveSpan, inQSearch && !inCheck);
 
         // Order moves in reverse order -> negative values are ordered higher hence the flipped values
         foreach (Move move in moveSpan)
@@ -207,9 +212,9 @@ public class TyrantBot8 : IChessBot
             // MVVLVA
             move.IsCapture ? 1_000_000 * (int)move.CapturePieceType - (int)move.MovePieceType :
             // Killers
-            killers[plyFromRoot] == move ? 900_000 :
+            Killers[plyFromRoot] == move ? 900_000 :
             // History
-            historyHeuristics[plyFromRoot & 1, (int)move.MovePieceType, move.TargetSquare.Index]);
+            HistoryTable[plyFromRoot & 1, (int)move.MovePieceType, move.TargetSquare.Index]);
 
         moveScores.AsSpan(0, moveSpan.Length).Sort(moveSpan);
 
@@ -223,14 +228,18 @@ public class TyrantBot8 : IChessBot
             // Out of time -> return checkmate so that this move is ignored
             // but better than the worst eval so a move is still picked if no moves are looked at
             // Depth check is to disallow timeouts before the bot has found a move
-            if (depth > 2 && searchTimer.MillisecondsElapsedThisTurn > searchMaxTime)
+            if (depth > 2 && Timer.MillisecondsElapsedThisTurn > TimeLimit)
                 return 99999;
-
+            
             // Futility pruning
             if (canFPrune && !(movesTried == 0 || move.IsCapture || move.IsPromotion))
                 continue;
 
-            board.MakeMove(move);
+            // Debug
+            if (depth > 0) Nodes++;
+            else QNodes++;
+            
+            Board.MakeMove(move);
 
             //////////////////////////////////////////////////////
             ////                                              ////
@@ -267,7 +276,7 @@ public class TyrantBot8 : IChessBot
             ////                                      ////
             //////////////////////////////////////////////
 
-            board.UndoMove(move);
+            Board.UndoMove(move);
 
             if (eval > bestEval)
             {
@@ -279,7 +288,7 @@ public class TyrantBot8 : IChessBot
 
                     // Update the root move
                     if (isRoot)
-                        rootMove = move;
+                        BestMove = move;
                 }
 
                 // Cutoff
@@ -288,8 +297,8 @@ public class TyrantBot8 : IChessBot
                     // Update history tables
                     if (!move.IsCapture)
                     {
-                        historyHeuristics[plyFromRoot & 1, (int)move.MovePieceType, move.TargetSquare.Index] += depth * depth;
-                        killers[plyFromRoot] = move;
+                        HistoryTable[plyFromRoot & 1, (int)move.MovePieceType, move.TargetSquare.Index] += depth * depth;
+                        Killers[plyFromRoot] = move;
                     }
                     break;
                 }
@@ -335,7 +344,7 @@ public class TyrantBot8 : IChessBot
         }.Select(packedTable =>
         new System.Numerics.BigInteger(packedTable).ToByteArray().Take(12)
                     // Using search max time since it's an integer than initializes to zero and is assgined before being used again 
-                    .Select(square => (int)((sbyte)square * 1.461) + PieceValues[searchMaxTime++ % 12])
+                    .Select(square => (int)((sbyte)square * 1.461) + PieceValues[TimeLimit++ % 12])
                 .ToArray()
         ).ToArray();
     }
@@ -345,7 +354,7 @@ public class TyrantBot8 : IChessBot
         int middlegame = 0, endgame = 0, gamephase = 0, sideToMove = 2, piece, square;
         for (; --sideToMove >= 0; middlegame = -middlegame, endgame = -endgame)
             for (piece = -1; ++piece < 6;)
-                for (ulong mask = board.GetPieceBitboard((PieceType)piece + 1, sideToMove > 0); mask != 0;)
+                for (ulong mask = Board.GetPieceBitboard((PieceType)piece + 1, sideToMove > 0); mask != 0;)
                 {
                     // Gamephase, middlegame -> endgame
                     gamephase += GamePhaseIncrement[piece];
@@ -356,7 +365,7 @@ public class TyrantBot8 : IChessBot
                     endgame += UnpackedPestoTables[square][piece + 6];
                 }
                                                                                                         // Tempo bonus to help with aspiration windows
-        return (middlegame * gamephase + endgame * (24 - gamephase)) / 24 * (board.IsWhiteToMove ? 1 : -1) + gamephase / 2;
+        return (middlegame * gamephase + endgame * (24 - gamephase)) / 24 * (Board.IsWhiteToMove ? 1 : -1) + gamephase / 2;
     }
 
     #endregion

@@ -9,16 +9,17 @@ using ChessChallenge.API;
  * V3: Reversed futility pruning, futility pruning and from NegaMax to PVS
  * V4: Killer moves, check extensions, razoring, time management
  * V5: Late move reduction, token savings
+ * V6: Span<Move> instead of Linq, gradual windowing
  */
 public class MyBot : IChessBot
 {
     public int Nodes;
     public int QNodes;
-
+    
     // Transposition Table: keep track of positions that were already calculated and possibly re-use information
-    record struct TtEntry(ulong Key, int Score, int Depth, int Flag, Move BestMove);
-    TtEntry[] _tt = new TtEntry[0x400000];
-
+    // Token optimised: Key, Score, Depth, Flag, Move
+    private readonly (ulong, int, int, int, Move)[] _tt = new (ulong, int, int, int, Move)[0x400000];
+    
     // History Heuristics: keep track on great moves that caused a cutoff to retry them
     // Based on a lookup by color, piece type and target square
     public int[,,] HistoryHeuristics;
@@ -26,6 +27,9 @@ public class MyBot : IChessBot
     // Killer moves: keep track on great moves that caused a cutoff to retry them
     // Based on a lookup by depth
     public Move[] Killers = new Move[256];
+
+    // The current legal moves ordered by their score
+    public readonly int[] MoveScores = new int[256];
     
     // Globals
     public Timer Timer; 
@@ -42,23 +46,28 @@ public class MyBot : IChessBot
             canFutilityPrune = false,
             isPv = beta - alpha > 1,
             inCheck = Board.IsInCheck();
-        int alphaStart = alpha,
-            bestEval = -100_000,
-            movesSearched = 0,
-            newScore; // Here for token optimise reasons
-
-        // Using local method to simplify multiple similar calls to Pvs
-        int Search(int newAlpha, int reduction = 1) => newScore = -Pvs(depth - reduction, plyFromRoot, -newAlpha, -alpha);
-
+        
         // Check for repetition since TT doesn't know that and we don't want draws when we can win
         if (notRoot && Board.IsRepeatedPosition()) return 0;
 
         // Try to find the board position in the tt
         ulong zobristKey = Board.ZobristKey;
-        var (ttKey, ttScore, ttDepth, ttFlag, ttBestMove) = _tt[zobristKey % 0x400000];
+        ref var ttEntry = ref _tt[zobristKey % 0x400000];
+        
+        // Declare search variables
+        int alphaStart = alpha,
+            bestEval = -100_000,
+            movesSearched = 0,
+            movesScored = 0,
+            newScore,
+            ttScore = ttEntry.Item2,
+            ttFlag = ttEntry.Item4;
 
+        // Using local method to simplify multiple similar calls to the Pvs (to combine with Late move reduction)
+        int Search(int newAlpha, int reduction = 1) => newScore = -Pvs(depth - reduction, plyFromRoot, -newAlpha, -alpha);
+        
         // When we find the transposition check if we can use it to narrow our alpha beta bounds
-        if (notRoot && ttKey == zobristKey && ttDepth >= depth)
+        if (notRoot && ttEntry.Item1 == zobristKey && ttEntry.Item3 >= depth)
         {
             // 1 = lower bound; 2 = exact; 3 = upper bound
             switch (ttFlag)
@@ -113,24 +122,28 @@ public class MyBot : IChessBot
             // Futility pruning: if our position is so bad that even if we improve a lot
             // We can't improve alpha, so we'll give up on this branch
             // It's the pure form, only depth 1, classic minor piece value
-            if (depth == 1)
-                canFutilityPrune = staticEval + 300 <= alpha;
-
-            // Classic razoring in pre-pre-frontier node by rook margin
-            if (depth == 3 && staticEval + 500 <= alpha)
-                depth--;
+            canFutilityPrune = depth == 1 && staticEval + 300 <= alpha;
         }
 
-        // Move Ordering
-        var moves = Board.GetLegalMoves(inQSearch).OrderByDescending(
-            move =>
-                move == ttBestMove ? 9_000_000 :
-                move.IsCapture ? 1_000_000 * (int)move.CapturePieceType - (int)move.MovePieceType :
-                move.IsPromotion ? 1_000_000 :
-                Killers[plyFromRoot] == move ? 900_000 :
-                HistoryHeuristics[plyFromRoot & 1, (int)move.MovePieceType, move.TargetSquare.Index]
-        ).ToArray();
+        // Generate appropriate moves depending on whether we're in QSearch
+        Span<Move> moves = stackalloc Move[256];
+        Board.GetLegalMovesNonAlloc(ref moves, inQSearch);
 
+        // Order moves in reverse order -> negative values are ordered higher hence the flipped values
+        foreach (Move move in moves)
+            MoveScores[movesScored++] = -(
+                move == ttEntry.Item5 ? 9_000_000 :
+                move.IsPromotion ? 8_000_000 :
+                move.IsCapture ? 1_000_000 * (int)move.CapturePieceType - (int)move.MovePieceType :
+                Killers[plyFromRoot] == move ? 500_000 :
+                HistoryHeuristics[plyFromRoot & 1, (int)move.MovePieceType, move.TargetSquare.Index]
+            );
+
+        MoveScores.AsSpan(0, moves.Length).Sort(moves);
+        
+        // Performant way to check for stalemate and checkmate
+        if (!inQSearch && moves.IsEmpty) return inCheck ? plyFromRoot - 100_000 : 0;
+        
         Move bestMove = default;
         foreach (Move move in moves)
         {
@@ -139,10 +152,6 @@ public class MyBot : IChessBot
 
             // Futility prune on non tactical nodes and never on first move
             if (canFutilityPrune && !tactical && movesSearched > 0) continue;
-
-            // Debug
-            if (depth > 0) Nodes++;
-            else QNodes++;
 
             Board.MakeMove(move);
             
@@ -153,7 +162,7 @@ public class MyBot : IChessBot
                 Search(beta);
             } else {
                 // Late move reduction search
-                if (!tactical && !inCheck && movesSearched > 5 && depth > 2) Search(alpha + 1, 3);
+                if (movesSearched > 6 && depth > 2) Search(alpha + 1, 3);
                 // Hack to ensure we'll go into the try for full search
                 else newScore = alpha + 1; 
                 
@@ -187,25 +196,23 @@ public class MyBot : IChessBot
             // Out of time break out of the loop
             if (Timer.MillisecondsElapsedThisTurn > TimeLimit) return 100_000;
         }
-
-        // Performant way to check for stalemate and checkmate
-        if (!inQSearch && moves.Length == 0) return inCheck ? plyFromRoot - 100_000 : 0;
-
-        // Insert entry in tt
-        _tt[zobristKey % 0x400000] = new TtEntry(zobristKey,
+        
+        
+        // Save position to transposition table
+        // Key, Score, Depth, Flag, Move
+        _tt[zobristKey % 0x400000] = (
+            zobristKey,
             bestEval,
             depth,
             bestEval <= alphaStart ? 3 : bestEval >= beta ? 1 : 2,
-            bestMove);
-
+            bestMove
+        );
+        
         return bestEval;
     }
 
     public Move Think(Board board, Timer timer)
     {
-        Nodes = 0;
-        QNodes = 0;
-
         Timer = timer;
         Board = board;
 
@@ -214,17 +221,17 @@ public class MyBot : IChessBot
         // Empty / Initialise HH every new turn
         HistoryHeuristics = new int[2, 7, 64];
 
-        // Iterative deepening
         for (int depth = 1; depth < 50; depth++)
         {
-            int score = Pvs(depth, 0, -100000, 100000);
+            int score = Pvs(depth, 0, -100_000, 100_000);
 
             DebugHelper.LogDepth(Timer, depth, score, this);
             
-            if (Timer.MillisecondsElapsedThisTurn > TimeLimit) break;
+            // Out of time
+            if (Timer.MillisecondsElapsedThisTurn > TimeLimit)
+                break;
         }
-        Console.WriteLine();
-
+        
         return BestMove;
     }
 
@@ -232,8 +239,7 @@ public class MyBot : IChessBot
 
     // Each piece taken off the board will count towards the endgame strategy
     private readonly int[] _gamePhaseIncrement = { 0, 1, 1, 2, 4, 0 };
-
-    //                                        P   K    B    R    Q     K
+    //  P   N    B    R    Q     K
     private readonly short[] _pieceValues =
     {
         82, 337, 365, 477, 1025, 20000,

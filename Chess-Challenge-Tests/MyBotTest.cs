@@ -27,11 +27,10 @@ public class MyBotTest
     [Test]
     public void TestGiveUpQueenToWinItBack()
     {
-        // Give up queen to win one later
         _testBoard = Board.CreateBoardFromFEN("r2q1rk1/1pp1bppp/4bn2/pP6/n2Bp3/P3P1NP/2PN1PP1/2RQKB1R b K - 2 13");
         _bot.Board = _testBoard;
 
-        for (int depth = 1; depth <= 12; depth++)
+        for (int depth = 1; depth <= 15; depth++)
         {
             int score = _bot.Pvs(depth, 0, -100000, 100000);
             LogAll(depth, score);
@@ -49,7 +48,7 @@ public class MyBotTest
         _testBoard = Board.CreateBoardFromFEN("5rk1/2p2qp1/3b3p/8/2PQ4/3P3P/Pr1B1Pp1/3R1RK1 w - - 0 23");
         _bot.Board = _testBoard;
 
-        for (int depth = 1; depth <= 13; depth++)
+        for (int depth = 1; depth <= 16; depth++)
         {
             int score = _bot.Pvs(depth, 0, -100000, 100000);
             LogAll(depth, score);
@@ -71,7 +70,7 @@ public class MyBotTest
         _testBoard = Board.CreateBoardFromFEN("r1b1k2r/pp2nppp/2pp1q2/5P2/2BbP3/2N1B3/PP3QPP/R4RK1 b kq - 1 18");
         _bot.Board = _testBoard;
 
-        for (int depth = 1; depth <= 13; depth++)
+        for (int depth = 1; depth <= 14; depth++)
         {
             int score = _bot.Pvs(depth, 0, -100000, 100000);
             LogAll(depth, score);
