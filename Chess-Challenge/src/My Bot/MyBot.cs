@@ -209,8 +209,7 @@ public class MyBot : IChessBot
             Pvs(depth, 0, -100_000, 100_000, true);
             
             // Out of time or when at the start don't waste too much time
-            if (Timer.MillisecondsElapsedThisTurn > TimeLimit
-                || (Board.PlyCount < 15 && depth > 8))
+            if (Timer.MillisecondsElapsedThisTurn > TimeLimit)
                 break;
         }
         
