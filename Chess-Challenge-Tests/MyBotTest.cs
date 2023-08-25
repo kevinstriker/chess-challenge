@@ -32,7 +32,7 @@ public class MyBotTest
 
         for (int depth = 1; depth <= 15; depth++)
         {
-            int score = _bot.Pvs(depth, 0, -100000, 100000);
+            int score = _bot.Pvs(depth, 0, -100000, 100000, true);
             LogAll(depth, score);
         }
 
@@ -50,7 +50,7 @@ public class MyBotTest
 
         for (int depth = 1; depth <= 16; depth++)
         {
-            int score = _bot.Pvs(depth, 0, -100000, 100000);
+            int score = _bot.Pvs(depth, 0, -100000, 100000, true);
             LogAll(depth, score);
         }
 
@@ -72,7 +72,7 @@ public class MyBotTest
 
         for (int depth = 1; depth <= 14; depth++)
         {
-            int score = _bot.Pvs(depth, 0, -100000, 100000);
+            int score = _bot.Pvs(depth, 0, -100000, 100000, true);
             LogAll(depth, score);
         }
 
@@ -90,7 +90,7 @@ public class MyBotTest
 
         for (int depth = 1; depth <= 13; depth++)
         {
-            int score = _bot.Pvs(depth, 0, -100000, 100000);
+            int score = _bot.Pvs(depth, 0, -100000, 100000, true);
             LogAll(depth, score);
         }
 
@@ -107,7 +107,7 @@ public class MyBotTest
 
         for (int depth = 1; depth <= 8; depth++)
         {
-            int score = _bot.Pvs(depth, 0, -100000, 100000);
+            int score = _bot.Pvs(depth, 0, -100000, 100000, true);
             LogAll(depth, score);
         }
 
@@ -124,7 +124,7 @@ public class MyBotTest
 
         for (int depth = 1; depth <= 8; depth++)
         {
-            int score = _bot.Pvs(depth, 0, -100000, 100000);
+            int score = _bot.Pvs(depth, 0, -100000, 100000, true);
             LogAll(depth, score);
         }
 
@@ -142,7 +142,7 @@ public class MyBotTest
 
         for (int depth = 1; depth <= 10; depth++)
         {
-            int score = _bot.Pvs(depth, 0, -100000, 100000);
+            int score = _bot.Pvs(depth, 0, -100000, 100000, true);
             LogAll(depth, score);
         }
 
@@ -159,7 +159,7 @@ public class MyBotTest
 
         for (int depth = 1; depth <= 8; depth++)
         {
-            int score = _bot.Pvs(depth, 0, -100000, 100000);
+            int score = _bot.Pvs(depth, 0, -100000, 100000, true);
             LogAll(depth, score);
         }
 
@@ -178,7 +178,7 @@ public class MyBotTest
 
         for (int depth = 1; depth <= 9; depth++)
         {
-            int score = _bot.Pvs(depth, 0, -100000, 100000);
+            int score = _bot.Pvs(depth, 0, -100000, 100000, true);
             LogAll(depth, score);
         }
 
@@ -218,7 +218,7 @@ public class MyBotTest
 
         for (int depth = 1; depth <= 11; depth++)
         {
-            int score = _bot.Pvs(depth, 0, -100000, 100000);
+            int score = _bot.Pvs(depth, 0, -100000, 100000, true);
             LogAll(depth, score);
         }
 
@@ -235,7 +235,7 @@ public class MyBotTest
         _testBoard = Board.CreateBoardFromFEN("2b1kb1r/P1pppppp/4nn2/1N4q1/2B2B2/4PN1P/1PPPQPP1/R3K2R w KQk - 0 1");
         _bot.Board = _testBoard;
 
-        int score = _bot.Pvs(1, 0, -100000, 100000);
+        int score = _bot.Pvs(1, 0, -100000, 100000, true);
 
         LogAll(1, score);
     }
@@ -252,7 +252,7 @@ public class MyBotTest
 
         for (int depth = 1; depth <= 6; depth++)
         {
-            int score = _bot.Pvs(depth, 0, -100000, 100000);
+            int score = _bot.Pvs(depth, 0, -100000, 100000, true);
             LogAll(depth, score);
         }
 
@@ -269,7 +269,7 @@ public class MyBotTest
 
         for (int depth = 1; depth <= 8; depth++)
         {
-            int score = _bot.Pvs(depth, 0, -100000, 100000);
+            int score = _bot.Pvs(depth, 0, -100000, 100000, true);
             LogAll(depth, score);
         }
 
@@ -287,7 +287,7 @@ public class MyBotTest
 
         for (int depth = 1; depth <= 6; depth++)
         {
-            int score = _bot.Pvs(depth, 0, -100000, 100000);
+            int score = _bot.Pvs(depth, 0, -100000, 100000, true);
             LogAll(depth, score);
         }
 
@@ -302,16 +302,26 @@ public class MyBotTest
 
     private void LogAll(int depth, int score)
     {
+        Console.WriteLine("depth {0} score {1}, time {2}ms, DepthMove {3}-{4}{5}",
+            depth,
+            score,
+            _stopwatch.ElapsedMilliseconds,
+            _bot.BestMove.MovePieceType.ToString(),
+            _bot.BestMove.StartSquare.Name,
+            _bot.BestMove.TargetSquare.Name);
+        /*
         Console.WriteLine("depth {0} score {1}, time {2}ms, nodes {3} qNodes {4}, nps {5}, DepthMove {6}-{7}{8}",
             depth,
             score,
             _stopwatch.ElapsedMilliseconds,
-            _bot.Nodes,
-            _bot.QNodes,
-            (_bot.Nodes + _bot.QNodes) / (_stopwatch.ElapsedMilliseconds + 1) * 1000,
+            0,0,0,
+            // _bot.Nodes,
+           // _bot.QNodes,
+            // (_bot.Nodes + _bot.QNodes) / (_stopwatch.ElapsedMilliseconds + 1) * 1000,
             _bot.BestMove.MovePieceType.ToString(),
             _bot.BestMove.StartSquare.Name,
             _bot.BestMove.TargetSquare.Name);
+            */
     }
 
     #endregion

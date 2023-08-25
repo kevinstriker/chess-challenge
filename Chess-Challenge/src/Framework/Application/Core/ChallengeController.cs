@@ -29,7 +29,8 @@ namespace ChessChallenge.Application
             V2,
             V3,
             V4,
-            V5Alpha,
+            V5,
+            V6,
             // Custom: other bots
             NegaMaxBot, // T1
             JacquesBot, // T2
@@ -59,7 +60,8 @@ namespace ChessChallenge.Application
                 PlayerType.V2 => new V2(),
                 PlayerType.V3 => new V3(),
                 PlayerType.V4 => new V4(),
-                PlayerType.V5Alpha => new V5(),
+                PlayerType.V5 => new V5(),
+                PlayerType.V6 => new V6(),
                 // Custom: other bots
                 PlayerType.NegaMaxBot => new NegaMaxBot(),
                 PlayerType.JacquesBot => new JacquesBot(),
@@ -269,7 +271,8 @@ namespace ChessChallenge.Application
                 PlayerType.V2 => new ChessPlayer(new V2(), type, GameDurationMilliseconds),
                 PlayerType.V3 => new ChessPlayer(new V3(), type, GameDurationMilliseconds),
                 PlayerType.V4 => new ChessPlayer(new V4(), type, GameDurationMilliseconds),
-                PlayerType.V5Alpha => new ChessPlayer(new V5(), type, GameDurationMilliseconds),
+                PlayerType.V5 => new ChessPlayer(new V5(), type, GameDurationMilliseconds),
+                PlayerType.V6 => new ChessPlayer(new V6(), type, GameDurationMilliseconds),
                 PlayerType.NegaMaxBot => new ChessPlayer(new NegaMaxBot(), type, GameDurationMilliseconds),
                 PlayerType.JacquesBot => new ChessPlayer(new JacquesBot(), type, GameDurationMilliseconds),
                 PlayerType.JeffBot => new ChessPlayer(new JeffBot(), type, GameDurationMilliseconds),

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using ChessChallenge.API;
 
@@ -9,9 +9,9 @@ using ChessChallenge.API;
  * V3: Reversed futility pruning, futility pruning and from NegaMax to PVS
  * V4: Killer moves, check extensions, razoring, time management
  * V5: Late move reduction, token savings
- * V6: Span<Move> instead of Linq, allowNull to prevent multiple nmp in a search
+ * V6: Span<Move> instead of Linq, allowNull to prevent double null moves, 
  */
-public class MyBot : IChessBot
+public class V6 : IChessBot
 {
     // Transposition Table: keep track of positions that were already calculated and possibly re-use information
     // Token optimised: Key, Score, Depth, Flag, Move
@@ -63,13 +63,14 @@ public class MyBot : IChessBot
         // Using local method to simplify multiple similar calls to the Pvs (to combine with Late move reduction)
         int Search(int newAlpha, int reduction = 1) => newScore = -Pvs(depth - reduction, plyFromRoot, -newAlpha, -alpha, allowNull);
         
+        // When we find the transposition check if we can use it return the already found score on it
         // 1 = lower bound; 2 = exact; 3 = upper bound
         if (notRoot && ttEntry.Item1 == zobristKey && ttEntry.Item3 >= depth
             && (ttFlag == 2
                 || (ttFlag == 3 && ttScore <= alpha)
                 || (ttFlag == 1 && ttScore >= beta)))
             return ttScore;
-
+        
         // Check extensions
         if (inCheck)
             depth++;
@@ -96,7 +97,7 @@ public class MyBot : IChessBot
             if (allowNull && depth > 1 && GamePhase > 0)
             {
                 Board.ForceSkipTurn();
-                // depth - (1 + Reduction), using the classic 2 for reduction, do not allow multiple null moves in a search
+                // depth - (1 + Reduction), using the classic 2 for reduction
                 int nullMoveEval = -Pvs(depth - 3, plyFromRoot, -beta, 1 - beta, false);
                 Board.UndoSkipTurn();
                 // Prune branch when the side who got a free move can't even improve
@@ -200,7 +201,7 @@ public class MyBot : IChessBot
         Board = board;
 
         TimeLimit = Timer.MillisecondsRemaining / 30;
-        
+
         // Empty / Initialise HH every new turn
         HistoryHeuristics = new int[2, 7, 64];
         
@@ -208,9 +209,8 @@ public class MyBot : IChessBot
         {
             Pvs(depth, 0, -100_000, 100_000, true);
             
-            // Out of time or when at the start don't waste too much time
-            if (Timer.MillisecondsElapsedThisTurn > TimeLimit
-                || (Board.PlyCount < 15 && depth > 8))
+            // Out of time
+            if (Timer.MillisecondsElapsedThisTurn > TimeLimit)
                 break;
         }
         
@@ -231,7 +231,7 @@ public class MyBot : IChessBot
     // The unpacked piece square lookup table
     private readonly int[][] _pst;
 
-    public MyBot()
+    public V6()
     {
         _pst = new[]
         {
@@ -268,10 +268,8 @@ public class MyBot : IChessBot
     {
         GamePhase = 0;
         int mg = 0, eg = 0, sideToMove = 2, piece, squareIndex;
-
+        
         // Loop the two sides that have to move (white and black)
-        // Flip score for optimised token count (always white perspective due to double flip)
-        // Eg. White eval = 2300 -> flip -> -2300 -> black eval = 2000 -> -300 -> flip -> 300 
         for (; --sideToMove >= 0; mg = -mg, eg = -eg)
         for (piece = -1; ++piece < 6;)
         for (ulong mask = Board.GetPieceBitboard((PieceType)piece + 1, sideToMove > 0); mask != 0;)
