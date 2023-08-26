@@ -1,6 +1,8 @@
 using System;
+using System.Diagnostics;
 using System.Linq;
 using ChessChallenge.API;
+using ChessChallenge.Example;
 
 public static class DebugHelper
 {
@@ -21,7 +23,7 @@ public static class DebugHelper
         // Depth level
         botName = botName.Replace("Bot", "");
         string depthString = $"{boldText}{orangeColor}{botName} - {depth} ply{resetFormat}";
-        depthString += string.Concat(Enumerable.Repeat(" ", 40 - depthString.Length));
+        depthString += string.Concat(Enumerable.Repeat(" ", 52 - depthString.Length));
 
         // Time
         string timeString =
@@ -60,8 +62,17 @@ public static class DebugHelper
     // My Bot version
     public static void LogDepth(Timer timer, int depth, int score, MyBot bot)
     {
-        //LogDepth(bot.GetType().ToString(), timer, depth, score, bot.Nodes, bot.QNodes, bot.BestMove);
+        LogDepth(bot.GetType().ToString(), timer, depth, score, bot.Nodes, bot.QNodes, bot.BestMove);
     }
     
+    public static void LogDepth(Timer timer, int depth, int score, LiteBlueBot7 bot)
+    {
+        LogDepth(bot.GetType().ToString(), timer, depth, score, bot.Nodes, bot.QNodes, bot.BestMove);
+    }
+    
+    public static void LogDepth(Timer timer, int depth, int score, TyrantBot8 bot)
+    {
+        LogDepth(bot.GetType().ToString(), timer, depth, score, bot.Nodes, bot.QNodes, bot.BestMove);
+    }
     
 }

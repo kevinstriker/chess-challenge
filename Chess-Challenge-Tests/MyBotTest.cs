@@ -22,6 +22,29 @@ public class MyBotTest
         _stopwatch = Stopwatch.StartNew();
     }
 
+
+    #region Mistakes in games
+
+    [Test]
+    public void TestAttackKingWithRook()
+    {
+        _testBoard = Board.CreateBoardFromFEN("3r4/4kp2/2p2p2/4pB2/1pq1P2p/2n1RQ1P/2r2PP1/R5K1 w - - 0 44");
+        _bot.Board = _testBoard;
+
+        for (int depth = 1; depth <= 14; depth++)
+        {
+            int score = _bot.Pvs(depth, 0, -100000, 100000, true);
+            DebugHelper.LogDepth(_bot.Timer, depth, score, _bot);
+        }
+
+        Assert.That(_bot.BestMove.MovePieceType, Is.EqualTo(PieceType.Rook));
+        Assert.That(_bot.BestMove.StartSquare.Name, Is.EqualTo("a1"));
+        Assert.That(_bot.BestMove.TargetSquare.Name, Is.EqualTo("a7"));
+    }
+    
+    #endregion
+    
+    
     #region Higher Depth
 
     [Test]
@@ -33,7 +56,7 @@ public class MyBotTest
         for (int depth = 1; depth <= 15; depth++)
         {
             int score = _bot.Pvs(depth, 0, -100000, 100000, true);
-            LogAll(depth, score);
+            DebugHelper.LogDepth(_bot.Timer, depth, score, _bot);
         }
 
         Assert.That(_bot.BestMove.MovePieceType, Is.EqualTo(PieceType.Queen));
@@ -51,7 +74,7 @@ public class MyBotTest
         for (int depth = 1; depth <= 16; depth++)
         {
             int score = _bot.Pvs(depth, 0, -100000, 100000, true);
-            LogAll(depth, score);
+            DebugHelper.LogDepth(_bot.Timer, depth, score, _bot);
         }
 
         Assert.That(_bot.BestMove.MovePieceType, Is.EqualTo(PieceType.Rook));
@@ -73,7 +96,7 @@ public class MyBotTest
         for (int depth = 1; depth <= 14; depth++)
         {
             int score = _bot.Pvs(depth, 0, -100000, 100000, true);
-            LogAll(depth, score);
+            DebugHelper.LogDepth(_bot.Timer, depth, score, _bot);
         }
 
         Assert.That(_bot.BestMove.MovePieceType, Is.EqualTo(PieceType.Bishop));
@@ -91,7 +114,7 @@ public class MyBotTest
         for (int depth = 1; depth <= 13; depth++)
         {
             int score = _bot.Pvs(depth, 0, -100000, 100000, true);
-            LogAll(depth, score);
+            DebugHelper.LogDepth(_bot.Timer, depth, score, _bot);
         }
 
         Assert.That(_bot.BestMove.MovePieceType, Is.EqualTo(PieceType.Queen));
@@ -108,7 +131,7 @@ public class MyBotTest
         for (int depth = 1; depth <= 8; depth++)
         {
             int score = _bot.Pvs(depth, 0, -100000, 100000, true);
-            LogAll(depth, score);
+            DebugHelper.LogDepth(_bot.Timer, depth, score, _bot);
         }
 
         Assert.That(_bot.BestMove.MovePieceType, Is.EqualTo(PieceType.Rook));
@@ -125,7 +148,7 @@ public class MyBotTest
         for (int depth = 1; depth <= 8; depth++)
         {
             int score = _bot.Pvs(depth, 0, -100000, 100000, true);
-            LogAll(depth, score);
+            DebugHelper.LogDepth(_bot.Timer, depth, score, _bot);
         }
 
         Assert.That(_bot.BestMove.MovePieceType, Is.EqualTo(PieceType.Queen));
@@ -143,7 +166,7 @@ public class MyBotTest
         for (int depth = 1; depth <= 10; depth++)
         {
             int score = _bot.Pvs(depth, 0, -100000, 100000, true);
-            LogAll(depth, score);
+            DebugHelper.LogDepth(_bot.Timer, depth, score, _bot);
         }
 
         Assert.That(_bot.BestMove.MovePieceType, Is.EqualTo(PieceType.Pawn));
@@ -160,7 +183,7 @@ public class MyBotTest
         for (int depth = 1; depth <= 8; depth++)
         {
             int score = _bot.Pvs(depth, 0, -100000, 100000, true);
-            LogAll(depth, score);
+            DebugHelper.LogDepth(_bot.Timer, depth, score, _bot);
         }
 
         Assert.That(_bot.BestMove.MovePieceType, Is.EqualTo(PieceType.Rook));
@@ -179,7 +202,7 @@ public class MyBotTest
         for (int depth = 1; depth <= 9; depth++)
         {
             int score = _bot.Pvs(depth, 0, -100000, 100000, true);
-            LogAll(depth, score);
+            DebugHelper.LogDepth(_bot.Timer, depth, score, _bot);
         }
 
         Assert.That(_bot.BestMove.MovePieceType, Is.EqualTo(PieceType.Bishop));
@@ -192,34 +215,15 @@ public class MyBotTest
     #region Starting position
 
     [Test]
-    /*
-     * Info: depth:  2 || eval:     12 || nodes:       183 || nps:    16636 || time:    10ms || best move: g1f3
-     * Info: depth:  3 || eval:     22 || nodes:       323 || nps:    26916 || time:    11ms || best move: g1f3
-     * Info: depth:  4 || eval:     12 || nodes:       612 || nps:    51000 || time:    11ms || best move: g1f3
-     * Info: depth:  5 || eval:     19 || nodes:      1557 || nps:   111214 || time:    13ms || best move: g1f3
-     * Info: depth:  6 || eval:     12 || nodes:      3850 || nps:   213888 || time:    17ms || best move: g1f3
-     * Info: depth:  7 || eval:     16 || nodes:      9257 || nps:   342851 || time:    26ms || best move: g1f3
-     * Info: depth:  8 || eval:     12 || nodes:     19395 || nps:   440795 || time:    43ms || best move: g1f3
-     * Info: depth:  9 || eval:     20 || nodes:     72068 || nps:   637769 || time:   112ms || best move: b1c3
-     * Info: depth: 10 || eval:     12 || nodes:    150731 || nps:   731703 || time:   205ms || best move: b1c3
-     * Info: depth: 11 || eval:     18 || nodes:    398854 || nps:  1030630 || time:   386ms || best move: g1f3
-     * Info: depth: 12 || eval:     12 || nodes:    837791 || nps:  1362261 || time:   614ms || best move: d2d4
-     * Info: depth: 13 || eval:     15 || nodes:   1574613 || nps:  1462036 || time:  1076ms || best move: d2d4
-     * Info: depth: 14 || eval:     13 || nodes:   2612874 || nps:  1611890 || time:  1620ms || best move: d2d4
-     * Info: depth: 15 || eval:     19 || nodes:   5558057 || nps:  1762224 || time:  3153ms || best move: d2d4
-     * Info: depth: 16 || eval:     13 || nodes:  13872494 || nps:  1853125 || time:  7485ms || best move: d2d4
-     * Info: depth: 17 || eval:     13 || nodes:  29057297 || nps:  1885123 || time: 15413ms || best move: d2d4
-     * Info: depth: 18 || eval:      9 || nodes:  80326989 || nps:  1873603 || time: 42872ms || best move: d2d4
-     **/
     public void TestStartingPosition()
     {
         _testBoard = Board.CreateBoardFromFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
         _bot.Board = _testBoard;
 
-        for (int depth = 1; depth <= 11; depth++)
+        for (int depth = 1; depth <= 12; depth++)
         {
             int score = _bot.Pvs(depth, 0, -100000, 100000, true);
-            LogAll(depth, score);
+            DebugHelper.LogDepth(_bot.Timer, depth, score, _bot);
         }
 
         Assert.That(_stopwatch.ElapsedMilliseconds, Is.LessThan(20000));
@@ -237,7 +241,8 @@ public class MyBotTest
 
         int score = _bot.Pvs(1, 0, -100000, 100000, true);
 
-        LogAll(1, score);
+        DebugHelper.LogDepth(_bot.Timer, 0, score, _bot);
+
     }
 
     #endregion
@@ -253,7 +258,7 @@ public class MyBotTest
         for (int depth = 1; depth <= 6; depth++)
         {
             int score = _bot.Pvs(depth, 0, -100000, 100000, true);
-            LogAll(depth, score);
+            DebugHelper.LogDepth(_bot.Timer, depth, score, _bot);
         }
 
         Assert.That(_bot.BestMove.MovePieceType, Is.EqualTo(PieceType.Queen));
@@ -270,7 +275,7 @@ public class MyBotTest
         for (int depth = 1; depth <= 8; depth++)
         {
             int score = _bot.Pvs(depth, 0, -100000, 100000, true);
-            LogAll(depth, score);
+            DebugHelper.LogDepth(_bot.Timer, depth, score, _bot);
         }
 
         Assert.That(_bot.BestMove.MovePieceType, Is.EqualTo(PieceType.Knight));
@@ -279,7 +284,7 @@ public class MyBotTest
     }
 
     [Test]
-    public void TestCheckMateByQueenSacrafice()
+    public void TestCheckMateByQueenSacrifice()
     {
         // Checkmate by queen sacrifice
         _testBoard = Board.CreateBoardFromFEN("2r2bk1/p5p1/1p1p2Qp/2PNp3/PR1nNr1q/3P4/5PPP/5RK1 b - - 0 1");
@@ -288,7 +293,7 @@ public class MyBotTest
         for (int depth = 1; depth <= 6; depth++)
         {
             int score = _bot.Pvs(depth, 0, -100000, 100000, true);
-            LogAll(depth, score);
+            DebugHelper.LogDepth(_bot.Timer, depth, score, _bot);
         }
 
         Assert.That(_bot.BestMove.MovePieceType, Is.EqualTo(PieceType.Knight));
@@ -297,34 +302,7 @@ public class MyBotTest
     }
 
     #endregion
-
-    #region Logging
-
-    private void LogAll(int depth, int score)
-    {
-        Console.WriteLine("depth {0} score {1}, time {2}ms, DepthMove {3}-{4}{5}",
-            depth,
-            score,
-            _stopwatch.ElapsedMilliseconds,
-            _bot.BestMove.MovePieceType.ToString(),
-            _bot.BestMove.StartSquare.Name,
-            _bot.BestMove.TargetSquare.Name);
-        /*
-        Console.WriteLine("depth {0} score {1}, time {2}ms, nodes {3} qNodes {4}, nps {5}, DepthMove {6}-{7}{8}",
-            depth,
-            score,
-            _stopwatch.ElapsedMilliseconds,
-            0,0,0,
-            // _bot.Nodes,
-           // _bot.QNodes,
-            // (_bot.Nodes + _bot.QNodes) / (_stopwatch.ElapsedMilliseconds + 1) * 1000,
-            _bot.BestMove.MovePieceType.ToString(),
-            _bot.BestMove.StartSquare.Name,
-            _bot.BestMove.TargetSquare.Name);
-            */
-    }
-
-    #endregion
+    
 
     #region Hardware
 
