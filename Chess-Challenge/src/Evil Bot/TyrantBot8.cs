@@ -111,7 +111,7 @@ public class TyrantBot8 : IChessBot
         // Progressively increase search depth, starting from 2
         for (int depth = 2, alpha = -999999, beta = 999999, eval;;)
         {
-            eval = PVS(depth, alpha, beta, 0, true);
+            eval = PVS(depth, 0, alpha, beta, true);
 
             // Out of time
             if (timer.MillisecondsElapsedThisTurn > TimeLimit)
@@ -153,7 +153,7 @@ public class TyrantBot8 : IChessBot
     }
 
     // This method doubles as our PVS and QSearch in order to save tokens
-    public int PVS(int depth, int alpha, int beta, int plyFromRoot, bool allowNull)
+    public int PVS(int depth, int plyFromRoot, int alpha, int beta, bool allowNull)
     {
 #if DEBUG
         nodes++;
@@ -183,7 +183,7 @@ public class TyrantBot8 : IChessBot
         //
         // Evil local method to save tokens for similar calls to PVS (set eval inside search)
         int Search(int newAlpha, int R = 1, bool canNull = true) =>
-            eval = -PVS(depth - R, -newAlpha, -alpha, plyFromRoot, canNull);
+            eval = -PVS(depth - R, plyFromRoot, -newAlpha, -alpha, canNull);
         //
         //
 

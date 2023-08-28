@@ -22,7 +22,7 @@ public class MyBot : IChessBot
 
     // Transposition Table: keep track of positions that were already calculated and possibly re-use information
     // Token optimised: Key, Score, Depth, Flag, Move
-    private readonly (ulong, int, int, int, Move)[] _tt = new (ulong, int, int, int, Move)[0x400000];
+    private (ulong, int, int, int, Move)[] _transpositionTable = new (ulong, int, int, int, Move)[0x400000];
 
     // History Heuristics: keep track on great moves that caused a cutoff to retry them
     // Based on a lookup by color, piece type and target square
@@ -30,7 +30,7 @@ public class MyBot : IChessBot
 
     // Killer moves: keep track on great moves that caused a cutoff to retry them
     // Based on a lookup by depth
-    public Move[] Killers = new Move[256];
+    public Move[] Killers = new Move[2048];
 
     // The current legal moves ordered by their score
     public readonly int[] MoveScores = new int[256];
@@ -38,7 +38,7 @@ public class MyBot : IChessBot
     // Globals
     public Timer Timer;
     public Board Board;
-    public int TimeLimit, GamePhase;
+    public int TimeLimit;
 
     // Keep track on the best move
     public Move BestMove;
@@ -50,12 +50,12 @@ public class MyBot : IChessBot
             canFutilityPrune = false,
             inCheck = Board.IsInCheck();
 
-        // Check for repetition since TT doesn't know that and we don't want draws when we can win
+        // Draw detection first since TT doesn't know how many times a certain position was played
         if (notRoot && Board.IsRepeatedPosition()) return 0;
 
         // Try to find the board position in the tt
         ulong zobristKey = Board.ZobristKey;
-        ref var ttEntry = ref _tt[zobristKey % 0x400000];
+        ref var ttEntry = ref _transpositionTable[zobristKey & 0x3FFFFF];
 
         // Declare search variables
         int alphaStart = alpha,
@@ -63,19 +63,19 @@ public class MyBot : IChessBot
             movesSearched = 0,
             movesScored = 0,
             newScore,
-            ttScore = ttEntry.Item2,
-            ttFlag = ttEntry.Item4;
+            entryScore = ttEntry.Item2,
+            entryFlag = ttEntry.Item4;
 
         // Using local method to simplify multiple similar calls to the Pvs (to combine with Late move reduction)
-        int Search(int newAlpha, int reduction = 1) =>
-            newScore = -Pvs(depth - reduction, plyFromRoot, -newAlpha, -alpha, allowNull);
+        int Search(int newAlpha, int reduction = 1, bool canNull = true) =>
+            newScore = -Pvs(depth - reduction, plyFromRoot, -newAlpha, -alpha, canNull);
 
-        // 1 = lower bound; 2 = exact; 3 = upper bound
-        if (ttEntry.Item1 == zobristKey && ttEntry.Item3 >= depth && notRoot
-            && (ttFlag == 2
-                || (ttFlag == 3 && ttScore <= alpha)
-                || (ttFlag == 1 && ttScore >= beta)))
-            return ttScore;
+        // Transposition lookup, do not try to get mate scores since their ply is not accurate
+        if (ttEntry.Item1 == zobristKey && ttEntry.Item3 >= depth && notRoot && (
+                entryFlag == 1 ||
+                entryFlag == 2 && entryScore <= alpha ||
+                entryFlag == 3 && entryScore >= beta))
+            return entryScore;
 
         // Check extensions
         if (inCheck)
@@ -89,7 +89,8 @@ public class MyBot : IChessBot
             if (beta <= bestEval) return bestEval;
             alpha = Math.Max(alpha, bestEval);
         }
-        // No pruning in QSearch and not when there is a check (unstable situation)
+        // No pruning in QSearch 
+        // If this node is not part of the PV and not in check (too unstable to judge)
         else if (beta - alpha == 1 && !inCheck)
         {
             int staticEval = Evaluate();
@@ -99,15 +100,15 @@ public class MyBot : IChessBot
             if (depth < 11 && beta <= staticEval - 100 * depth)
                 return staticEval;
 
-            // Null move pruning on pre-frontier nodes and higher and not in king - pawn endgames where a null move can be an advantage
-            if (allowNull && depth > 1 && GamePhase > 0)
+            // Null move pruning on pre-frontier nodes
+            // When the side who got a free move can't even improve after a null move we prune this branch
+            if (depth > 1 && allowNull)
             {
                 Board.ForceSkipTurn();
-                // depth - (1 + Reduction), using the classic 2 for reduction, do not allow multiple null moves in a search
-                int nullMoveEval = -Pvs(depth - 3, plyFromRoot, -beta, 1 - beta, false);
+                // Depth is 1 - R(eduction), we'll use 2 for now and scale it a bit with depth
+                Search(beta, 3 + depth / 4, false);
                 Board.UndoSkipTurn();
-                // Prune branch when the side who got a free move can't even improve
-                if (beta <= nullMoveEval) return nullMoveEval;
+                if (beta <= newScore) return newScore;
             }
 
             // Futility pruning: if our position is so bad that even if we improve a lot
@@ -116,47 +117,43 @@ public class MyBot : IChessBot
         }
 
         // Generate appropriate moves depending on whether we're in QSearch
-        Span<Move> moves = stackalloc Move[256];
-        Board.GetLegalMovesNonAlloc(ref moves, inQSearch);
+        Span<Move> moveSpan = stackalloc Move[256];
+        Board.GetLegalMovesNonAlloc(ref moveSpan, inQSearch);
 
         // Order moves in reverse order -> negative values are ordered higher hence the flipped values
-        foreach (Move move in moves)
+        foreach (Move move in moveSpan)
             MoveScores[movesScored++] = -(
                 move == ttEntry.Item5 ? 9_000_000 :
                 move.IsPromotion ? 8_000_000 :
                 move.IsCapture ? 1_000_000 * (int)move.CapturePieceType - (int)move.MovePieceType :
-                Killers[plyFromRoot] == move ? 500_000 :
+                Killers[plyFromRoot] == move ? 900_000 :
                 HistoryHeuristics[plyFromRoot & 1, (int)move.MovePieceType, move.TargetSquare.Index]
             );
 
-        MoveScores.AsSpan(0, moves.Length).Sort(moves);
+        MoveScores.AsSpan(0, moveSpan.Length).Sort(moveSpan);
 
         // Performant way to check for stalemate and checkmate
-        if (!inQSearch && moves.IsEmpty) return inCheck ? plyFromRoot - 100_000 : 0;
+        if (!inQSearch && moveSpan.IsEmpty) return inCheck ? plyFromRoot - 100_000 : 0;
 
         Move bestMove = default;
-        foreach (Move move in moves)
+        foreach (Move move in moveSpan)
         {
-            
-            // Debug
+
+#if X
             if (depth > 0) Nodes++;
             else QNodes++;
-            
-            // On certain nodes (tactical nodes), static eval, even with a wide margin, isn't safe enough to exclude
-            bool tactical = move.IsCapture || move.IsPromotion;
-            
+#endif
+
             // Futility prune on non tactical nodes and never on first move
-            if (canFutilityPrune && !tactical && movesSearched > 0) continue;
-            
+            if (canFutilityPrune && !(movesSearched == 0 || move.IsCapture || move.IsPromotion)) continue;
+
             Board.MakeMove(move);
 
             // PVS + LMR
 
             // Full search in Q search or on first move
-            if (inQSearch || movesSearched++ == 0)
-            {
+            if (movesSearched++ == 0 || inQSearch)
                 Search(beta);
-            }
             else
             {
                 // Late move reduction search
@@ -167,9 +164,7 @@ public class MyBot : IChessBot
                 // Check if our reduced search beats alpha (or when "hack" happened it will beat alpha too)
                 // Try a zero window search at full depth and if that one also beats alpha we'll do a full search
                 if (newScore > alpha && Search(alpha + 1) > alpha)
-                {
                     Search(beta);
-                }
             }
 
             Board.UndoMove(move);
@@ -187,8 +182,7 @@ public class MyBot : IChessBot
                 {
                     if (!move.IsCapture)
                     {
-                        HistoryHeuristics[plyFromRoot & 1, (int)move.MovePieceType, move.TargetSquare.Index] +=
-                            depth * depth;
+                        HistoryHeuristics[plyFromRoot & 1, (int)move.MovePieceType, move.TargetSquare.Index] += depth * depth;
                         Killers[plyFromRoot] = move;
                     }
 
@@ -201,13 +195,13 @@ public class MyBot : IChessBot
         }
 
         // Save position to transposition table, Key, Score, Depth, Flag, Move
-        _tt[zobristKey % 0x400000] = (
+        // Transposition table insertion
+        ttEntry = new(
             zobristKey,
             bestEval,
             depth,
-            bestEval <= alphaStart ? 3 : bestEval >= beta ? 1 : 2,
-            bestMove
-        );
+            bestEval >= beta ? 3 : bestEval <= alphaStart ? 2 : 1,
+            bestMove == default ? ttEntry.Item5 : bestMove);
 
         return bestEval;
     }
@@ -251,13 +245,13 @@ public class MyBot : IChessBot
     #region Evaluation
 
     // Each piece taken off the board will count towards the endgame strategy
-    private readonly int[] _gamePhaseIncrement = { 0, 1, 1, 2, 4, 0 };
+    private readonly int[] _gamePhaseWeight = { 0, 1, 1, 2, 4, 0 };
 
-    //  P   N    B    R    Q     K
+    //  P   N    B    R     Q    K
     private readonly short[] _pieceValues =
     {
-        82, 337, 365, 477, 1025, 20000,
-        94, 281, 297, 512, 936, 20000
+        82, 337, 365, 477, 1025, 0,
+        94, 281, 297, 512, 936, 0
     };
 
     // The unpacked piece square lookup table
@@ -288,7 +282,7 @@ public class MyBot : IChessBot
             78580145051212187267589731866m, 75798434925965430405537592305m, 68369566912511282590874449920m,
             72396532057599326246617936384m, 75186737388538008131054524416m, 77027917484951889231108827392m,
             73655004947793353634062267392m, 76417372019396591550492896512m, 74568981255592060493492515584m,
-            70529879645288096380279255040m
+            70529879645288096380279255040m,
         }.Select(packedTable =>
             new System.Numerics.BigInteger(packedTable).ToByteArray().Take(12)
                 .Select(square => (int)((sbyte)square * 1.461) + _pieceValues[TimeLimit++ % 12])
@@ -299,28 +293,41 @@ public class MyBot : IChessBot
     private int Evaluate()
     {
         // Variables re-used during evaluate
-        int mg = 0, eg = 0, sideToMove = 2, piece, squareIndex, GamePhase = 0;
-
+        int mg = 0, eg = 0, gamePhase = 0, sideToMove = 2;
+        
         // Loop the two sides that have to move (white and black)
         // Flip score for optimised token count (always white perspective due to double flip)
-        // Eg. White eval = 2300 -> flip -> -2300 -> black eval = 2000 -> -300 -> flip -> 300 
+        // Eg. White eval = 2300 -> flip -> -2300 -> black eval = 2000 -> -300 -> flip -> 300 k)
         for (; --sideToMove >= 0; mg = -mg, eg = -eg)
-        for (piece = -1; ++piece < 6;)
-        for (ulong mask = Board.GetPieceBitboard((PieceType)piece + 1, sideToMove > 0); mask != 0;)
         {
-            // The less pieces, the more we bend towards our endgame strategy
-            GamePhase += _gamePhaseIncrement[piece];
+            //var pawnsPerFile = new int[8];
+            
+            for (int piece = -1; ++piece < 6;)
+            for (ulong mask = Board.GetPieceBitboard((PieceType)piece + 1, sideToMove > 0); mask != 0;)
+            {
+                // The less pieces, the more we bend towards our endgame piece square tables
+                gamePhase += _gamePhaseWeight[piece];
 
-            // A number between 0 to 63 that indicates which square the piece is on, flip for black
-            squareIndex = BitboardHelper.ClearAndGetIndexOfLSB(ref mask) ^ 56 * sideToMove;
+                // A number between 0 to 63 that indicates which square the piece is on, flip for black
+                int squareIndex = BitboardHelper.ClearAndGetIndexOfLSB(ref mask) ^ 56 * sideToMove;
 
-            // Piece values are baked into the pst (see constructor of the bot)
-            mg += _pst[squareIndex][piece];
-            eg += _pst[squareIndex][piece + 6];
+                // Piece (material) values are baked into the PST (!)
+                mg += _pst[squareIndex][piece];
+                eg += _pst[squareIndex][piece + 6];
+
+                // Keep track of doubled pawns
+                //if (piece==0)
+                //pawnsPerFile[squareIndex % 8]++;
+            }
+            
+            // Doubles pawns penalty
+            //int count = pawnsPerFile.Count(c => c > 1);
+            //mg -= count * 15;
+            //eg -= count * 30;
         }
-
+        
         // Tapered eval
-        return (mg * GamePhase + eg * (24 - GamePhase)) / 24 * (Board.IsWhiteToMove ? 1 : -1);
+        return (mg * gamePhase + eg * (24 - gamePhase)) / 24 * (Board.IsWhiteToMove ? 1 : -1);
     }
 
     #endregion

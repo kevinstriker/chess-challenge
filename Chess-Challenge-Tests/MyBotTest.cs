@@ -41,10 +41,10 @@ public class MyBotTest
         Assert.That(_bot.BestMove.StartSquare.Name, Is.EqualTo("a1"));
         Assert.That(_bot.BestMove.TargetSquare.Name, Is.EqualTo("a7"));
     }
-    
+
     #endregion
-    
-    
+
+
     #region Higher Depth
 
     [Test]
@@ -56,7 +56,7 @@ public class MyBotTest
         for (int depth = 1; depth <= 15; depth++)
         {
             int score = _bot.Pvs(depth, 0, -100000, 100000, true);
-            DebugHelper.LogDepth(_bot.Timer, depth, score, _bot);
+           DebugHelper.LogDepth(_bot.Timer, depth, score, _bot);
         }
 
         Assert.That(_bot.BestMove.MovePieceType, Is.EqualTo(PieceType.Queen));
@@ -82,9 +82,8 @@ public class MyBotTest
         Assert.That(_bot.BestMove.TargetSquare.Name, Is.EqualTo("e1"));
     }
 
-
     #endregion
-    
+
     #region Lower Depth
 
     [Test]
@@ -104,7 +103,7 @@ public class MyBotTest
         Assert.That(_bot.BestMove.TargetSquare.Name, Is.EqualTo("e3"));
     }
 
-    
+
     [Test]
     public void TestWinRookByCheckMateThreat()
     {
@@ -199,7 +198,7 @@ public class MyBotTest
         _testBoard = Board.CreateBoardFromFEN("2kr2r1/pppq1p2/2npbp1p/2bNp3/2P1P1P1/3P1N1P/PP1QBP2/R3K2R b KQ - 1 1");
         _bot.Board = _testBoard;
 
-        for (int depth = 1; depth <= 9; depth++)
+        for (int depth = 1; depth <= 15; depth++)
         {
             int score = _bot.Pvs(depth, 0, -100000, 100000, true);
             DebugHelper.LogDepth(_bot.Timer, depth, score, _bot);
@@ -209,7 +208,7 @@ public class MyBotTest
         Assert.That(_bot.BestMove.StartSquare.Name, Is.EqualTo("e6"));
         Assert.That(_bot.BestMove.TargetSquare.Name, Is.EqualTo("d5"));
     }
-    
+
     #endregion
 
     #region Starting position
@@ -220,7 +219,7 @@ public class MyBotTest
         _testBoard = Board.CreateBoardFromFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
         _bot.Board = _testBoard;
 
-        for (int depth = 1; depth <= 12; depth++)
+        for (int depth = 1; depth <= 15; depth++)
         {
             int score = _bot.Pvs(depth, 0, -100000, 100000, true);
             DebugHelper.LogDepth(_bot.Timer, depth, score, _bot);
@@ -242,7 +241,6 @@ public class MyBotTest
         int score = _bot.Pvs(1, 0, -100000, 100000, true);
 
         DebugHelper.LogDepth(_bot.Timer, 0, score, _bot);
-
     }
 
     #endregion
@@ -302,7 +300,55 @@ public class MyBotTest
     }
 
     #endregion
-    
+
+    #region BitBoard tests
+
+    [Test]
+    public void TestEvalBitboardDoubledPawns()
+    {
+        // Checkmate by queen sacrifice
+        _testBoard = Board.CreateBoardFromFEN("rnbqkbnr/ppppp1p1/4p2p/5P2/1P1P3P/PP1P2P1/8/RNBQKBNR b KQkq - 0 1");
+        _bot.Board = _testBoard;
+
+
+        int eval = 0, colors = 2;
+        
+        int[] materialValues = { 100, 300, 300, 500, 900, 0 };
+        
+        // Loop black and white colors of the game
+        // Flip score for optimised token count (always white perspective due to double flip)
+        // Eg. White eval = 2300 -> flip -> -2300 -> black eval = 2000 -> -300 -> flip -> 300 k)
+        for (; --colors >= 0; eval = -eval)
+        {
+            var pawnsPerFile = new int[8];
+            
+            for (int piece = -1; ++piece < 6;)
+            for (ulong mask = _testBoard.GetPieceBitboard((PieceType)piece + 1, colors > 0); mask != 0;)
+            {
+                // A number between 0 to 63 that indicates which square the piece is on, flip for black
+                int squareIndex = BitboardHelper.ClearAndGetIndexOfLSB(ref mask) ^ 56 * colors;
+
+                // Piece (material) values are baked into the PST (!)
+                eval += materialValues[piece];
+
+                // Keep track of doubled pawns
+                if (piece==0)
+                    pawnsPerFile[squareIndex % 8]++;
+            }
+            
+            // Doubles pawns penalty
+            int count = pawnsPerFile.Count(c => c > 1);
+            eval -= count * 50;
+        }
+
+        int score = eval * (_testBoard.IsWhiteToMove ? 1 : -1);
+            
+        
+        Console.WriteLine(score);
+    }
+
+    #endregion
+
 
     #region Hardware
 

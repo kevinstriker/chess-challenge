@@ -16,7 +16,7 @@ public class V6 : IChessBot
     // Transposition Table: keep track of positions that were already calculated and possibly re-use information
     // Token optimised: Key, Score, Depth, Flag, Move
     private readonly (ulong, int, int, int, Move)[] _tt = new (ulong, int, int, int, Move)[0x400000];
-    
+
     // History Heuristics: keep track on great moves that caused a cutoff to retry them
     // Based on a lookup by color, piece type and target square
     public int[,,] HistoryHeuristics;
@@ -27,10 +27,10 @@ public class V6 : IChessBot
 
     // The current legal moves ordered by their score
     public readonly int[] MoveScores = new int[256];
-    
+
     // Globals
-    public Timer Timer; 
-    public Board Board; 
+    public Timer Timer;
+    public Board Board;
     public int TimeLimit, GamePhase;
 
     // Keep track on the best move
@@ -43,14 +43,14 @@ public class V6 : IChessBot
             canFutilityPrune = false,
             isPv = beta - alpha > 1,
             inCheck = Board.IsInCheck();
-        
+
         // Check for repetition since TT doesn't know that and we don't want draws when we can win
         if (notRoot && Board.IsRepeatedPosition()) return 0;
 
         // Try to find the board position in the tt
         ulong zobristKey = Board.ZobristKey;
         ref var ttEntry = ref _tt[zobristKey % 0x400000];
-        
+
         // Declare search variables
         int alphaStart = alpha,
             bestEval = -100_000,
@@ -61,8 +61,9 @@ public class V6 : IChessBot
             ttFlag = ttEntry.Item4;
 
         // Using local method to simplify multiple similar calls to the Pvs (to combine with Late move reduction)
-        int Search(int newAlpha, int reduction = 1) => newScore = -Pvs(depth - reduction, plyFromRoot, -newAlpha, -alpha, allowNull);
-        
+        int Search(int newAlpha, int reduction = 1) =>
+            newScore = -Pvs(depth - reduction, plyFromRoot, -newAlpha, -alpha, allowNull);
+
         // When we find the transposition check if we can use it return the already found score on it
         // 1 = lower bound; 2 = exact; 3 = upper bound
         if (notRoot && ttEntry.Item1 == zobristKey && ttEntry.Item3 >= depth
@@ -70,7 +71,7 @@ public class V6 : IChessBot
                 || (ttFlag == 3 && ttScore <= alpha)
                 || (ttFlag == 1 && ttScore >= beta)))
             return ttScore;
-        
+
         // Check extensions
         if (inCheck)
             depth++;
@@ -124,10 +125,10 @@ public class V6 : IChessBot
             );
 
         MoveScores.AsSpan(0, moves.Length).Sort(moves);
-        
+
         // Performant way to check for stalemate and checkmate
         if (!inQSearch && moves.IsEmpty) return inCheck ? plyFromRoot - 100_000 : 0;
-        
+
         Move bestMove = default;
         foreach (Move move in moves)
         {
@@ -138,21 +139,25 @@ public class V6 : IChessBot
             if (canFutilityPrune && !tactical && movesSearched > 0) continue;
 
             Board.MakeMove(move);
-            
+
             // PVS + LMR
-            
+
             // Full search in Q search or on first move
-            if (inQSearch || movesSearched++ == 0) {
+            if (inQSearch || movesSearched++ == 0)
+            {
                 Search(beta);
-            } else {
+            }
+            else
+            {
                 // Late move reduction search
                 if (movesSearched > 6 && depth > 2) Search(alpha + 1, 3);
                 // Hack to ensure we'll go into the try for full search
-                else newScore = alpha + 1; 
-                
+                else newScore = alpha + 1;
+
                 // Check if our reduced search beats alpha (or when "hack" happened it will beat alpha too)
                 // Try a zero window search at full depth and if that one also beats alpha we'll do a full search
-                if (newScore > alpha && Search(alpha + 1) > alpha) {
+                if (newScore > alpha && Search(alpha + 1) > alpha)
+                {
                     Search(beta);
                 }
             }
@@ -162,7 +167,7 @@ public class V6 : IChessBot
             if (newScore > bestEval)
             {
                 if (!notRoot) BestMove = move;
-                
+
                 bestMove = move;
                 bestEval = newScore;
                 alpha = Math.Max(alpha, bestEval);
@@ -172,9 +177,11 @@ public class V6 : IChessBot
                 {
                     if (!move.IsCapture)
                     {
-                        HistoryHeuristics[plyFromRoot & 1, (int)move.MovePieceType, move.TargetSquare.Index] += depth * depth;
+                        HistoryHeuristics[plyFromRoot & 1, (int)move.MovePieceType, move.TargetSquare.Index] +=
+                            depth * depth;
                         Killers[plyFromRoot] = move;
                     }
+
                     break;
                 }
             }
@@ -182,7 +189,7 @@ public class V6 : IChessBot
             // Out of time break out of the loop
             if (Timer.MillisecondsElapsedThisTurn > TimeLimit) return 100_000;
         }
-        
+
         // Save position to transposition table, Key, Score, Depth, Flag, Move
         _tt[zobristKey % 0x400000] = (
             zobristKey,
@@ -191,7 +198,7 @@ public class V6 : IChessBot
             bestEval <= alphaStart ? 3 : bestEval >= beta ? 1 : 2,
             bestMove
         );
-        
+
         return bestEval;
     }
 
@@ -204,16 +211,16 @@ public class V6 : IChessBot
 
         // Empty / Initialise HH every new turn
         HistoryHeuristics = new int[2, 7, 64];
-        
+
         for (int depth = 1; depth < 50; depth++)
         {
             Pvs(depth, 0, -100_000, 100_000, true);
-            
+
             // Out of time
             if (Timer.MillisecondsElapsedThisTurn > TimeLimit)
                 break;
         }
-        
+
         return BestMove;
     }
 
@@ -221,6 +228,7 @@ public class V6 : IChessBot
 
     // Each piece taken off the board will count towards the endgame strategy
     private readonly int[] _gamePhaseIncrement = { 0, 1, 1, 2, 4, 0 };
+
     //  P   N    B    R    Q     K
     private readonly short[] _pieceValues =
     {
@@ -268,21 +276,29 @@ public class V6 : IChessBot
     {
         GamePhase = 0;
         int mg = 0, eg = 0, sideToMove = 2, piece, squareIndex;
-        
+
         // Loop the two sides that have to move (white and black)
         for (; --sideToMove >= 0; mg = -mg, eg = -eg)
-        for (piece = -1; ++piece < 6;)
-        for (ulong mask = Board.GetPieceBitboard((PieceType)piece + 1, sideToMove > 0); mask != 0;)
         {
-            // The less pieces, the more we bend towards our endgame strategy
-            GamePhase += _gamePhaseIncrement[piece];
+            for (piece = -1; ++piece < 6;)
+            for (ulong mask = Board.GetPieceBitboard((PieceType)piece + 1, sideToMove > 0); mask != 0;)
+            {
+                // The less pieces, the more we bend towards our endgame strategy
+                GamePhase += _gamePhaseIncrement[piece];
 
-            // A number between 0 to 63 that indicates which square the piece is on, flip for black
-            squareIndex = BitboardHelper.ClearAndGetIndexOfLSB(ref mask) ^ 56 * sideToMove;
+                // A number between 0 to 63 that indicates which square the piece is on, flip for black
+                squareIndex = BitboardHelper.ClearAndGetIndexOfLSB(ref mask) ^ 56 * sideToMove;
 
-            // Piece values are baked into the pst (see constructor of the bot)
-            mg += _pst[squareIndex][piece];
-            eg += _pst[squareIndex][piece + 6];
+                // Piece values are baked into the pst (see constructor of the bot)
+                mg += _pst[squareIndex][piece];
+                eg += _pst[squareIndex][piece + 6];
+            }
+
+            ulong p = Board.GetPieceBitboard(PieceType.Pawn, sideToMove > 0);
+            int dpc = Enumerable.Range(1, 6).Sum(i => (int)(p >> i & p >> i - 1)) - 8;
+
+            mg += dpc * -50;
+            eg += dpc * -25;
         }
 
         // Tapered eval
