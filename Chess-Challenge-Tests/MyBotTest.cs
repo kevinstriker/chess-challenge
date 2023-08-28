@@ -17,11 +17,33 @@ public class MyBotTest
         {
             Timer = new Timer(60000000, 60000000, 0),
             TimeLimit = 1000000000,
-            HistoryHeuristics = new int[2, 7, 64],
+            Hh = new int[2, 7, 64],
         };
         _stopwatch = Stopwatch.StartNew();
     }
 
+    #region Pawn Structure
+    
+    [Test]
+    public void TestGiveOpponentDoubledPawns()
+    {
+        _testBoard = Board.CreateBoardFromFEN("rnb1kb1r/ppp2ppp/3qpn2/3p2B1/2PP4/2N5/PP2PPPP/R2QKBNR w KQkq - 0 1");
+        _bot.Board = _testBoard;
+
+        for (int depth = 1; depth <= 13; depth++)
+        {
+            int score = _bot.Pvs(depth, 0, -100000, 100000, true);
+            DebugHelper.LogDepth(_bot.Timer, depth, score, _bot);
+        }
+
+        Assert.That(_bot.BestMove.MovePieceType, Is.EqualTo(PieceType.Bishop));
+        Assert.That(_bot.BestMove.StartSquare.Name, Is.EqualTo("g5"));
+        Assert.That(_bot.BestMove.TargetSquare.Name, Is.EqualTo("f6"));
+    }
+    
+    // 
+
+    #endregion
 
     #region Mistakes in games
 

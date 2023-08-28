@@ -54,5 +54,22 @@ public class LiteBlueBotTest
         Assert.That(_bot.BestMove.StartSquare.Name, Is.EqualTo("d8"));
         Assert.That(_bot.BestMove.TargetSquare.Name, Is.EqualTo("d4"));
     }
+    
+    [Test]
+    public void TestGiveOpponentDoubledPawns()
+    {
+        _testBoard = Board.CreateBoardFromFEN("rnb1kb1r/ppp2ppp/3qpn2/3p2B1/2PP4/2N5/PP2PPPP/R2QKBNR w KQkq - 0 1");
+        _bot.Board = _testBoard;
+
+        for (int depth = 1; depth <= 13; depth++)
+        {
+            int score = _bot.Negamax(depth, 0, -100000, 100000, true);
+            DebugHelper.LogDepth(_bot.Timer, depth, score, _bot);
+        }
+
+        Assert.That(_bot.BestMove.MovePieceType, Is.EqualTo(PieceType.Bishop));
+        Assert.That(_bot.BestMove.StartSquare.Name, Is.EqualTo("g5"));
+        Assert.That(_bot.BestMove.TargetSquare.Name, Is.EqualTo("f6"));
+    }
 
 }
