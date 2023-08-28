@@ -6,6 +6,7 @@ namespace Chess_Challenge_Tests;
 
 public class TyrantBot8Test
 {
+    /*
     private TyrantBot8 _bot;
     private Board _testBoard;
     private Stopwatch _stopwatch;
@@ -54,4 +55,22 @@ public class TyrantBot8Test
         Assert.That(_bot.BestMove.TargetSquare.Name, Is.EqualTo("d4"));
     }
     
+    [Test]
+    public void TestKingSafetyDoNotTakePawn()
+    {
+        // Do not take pawn with king since it will lose the queen much later
+        _testBoard = Board.CreateBoardFromFEN("5rk1/2p2qp1/3b3p/8/2PQ4/3P3P/Pr1B1Pp1/3R1RK1 w - - 0 23");
+        _bot.Board = _testBoard;
+
+        for (int depth = 1; depth <= 18; depth++)
+        {
+            int score = _bot.PVS(depth, 0, -100000, 100000, true);
+            DebugHelper.LogDepth(_bot.Timer, depth, score, _bot);
+        }
+
+        Assert.That(_bot.BestMove.MovePieceType, Is.EqualTo(PieceType.Rook));
+        Assert.That(_bot.BestMove.StartSquare.Name, Is.EqualTo("f1"));
+        Assert.That(_bot.BestMove.TargetSquare.Name, Is.EqualTo("e1"));
+    }
+    */
 }

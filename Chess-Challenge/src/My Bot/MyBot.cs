@@ -11,7 +11,7 @@ using ChessChallenge.API;
  * V3: Reversed futility pruning, futility pruning and from NegaMax to PVS
  * V4: Killer moves, check extensions, razoring, time management
  * V5: Late move reduction, token savings
- * V6: Span<Move> instead of Linq, allowNull to prevent multiple nmp in a search
+ * V6: Span<Move> for moves collection, allowNull to prevent double pruning, more effective alpha beta update and beta cutoff, token optimalisation
  */
 public class MyBot : IChessBot
 {
@@ -41,7 +41,7 @@ public class MyBot : IChessBot
     public int TimeLimit;
 
     // Keep track on the best move
-    public Move BestMove;
+    public Move RootMove;
 
     public int Pvs(int depth, int plyFromRoot, int alpha, int beta, bool allowNull)
     {
@@ -97,7 +97,7 @@ public class MyBot : IChessBot
 
             // Reverse futility pruning: if our position is much better than beta, even if we start losing material every depth
             // we'd still be above beta, so cutoff since unlikely opponent will allow us this path
-            if (depth < 4 && beta <= staticEval - 100 * depth)
+            if (depth < 4 && beta <= staticEval - 94 * depth)
                 return staticEval;
 
             // Null move pruning on pre-frontier nodes
@@ -127,8 +127,7 @@ public class MyBot : IChessBot
         // Order moves in reverse order -> negative values are ordered higher hence the flipped values
         foreach (Move move in moveSpan)
             MoveScores[movesScored++] = -(
-                move == ttEntry.Item5 ? 9_000_000 :
-                move.IsPromotion ? 8_000_000 :
+                move == ttEntry.Item5 ? 5_000_000 :
                 move.IsCapture ? 1_000_000 * (int)move.CapturePieceType - (int)move.MovePieceType :
                 Killers[plyFromRoot] == move ? 900_000 :
                 Hh[plyFromRoot & 1, (int)move.MovePieceType, move.TargetSquare.Index]
@@ -159,13 +158,14 @@ public class MyBot : IChessBot
                 Search(beta);
             else
             {
-                // Late move reduction search
-                if (movesSearched > 6 && depth > 2) Search(alpha + 1, 3 + depth / 4);
                 // Hack to ensure we'll go into a zero window search
-                else newScore = alpha + 1;
+                if (movesSearched < 6 || depth < 2) newScore = alpha + 1;
+                // Late move reduction search from d
+                else Search(alpha + 1, 3);
 
                 // Zero window search when reduced search improved alpha (or alpha hacked see above)
                 if (newScore > alpha && Search(alpha + 1) > alpha)
+                    // Full search when lmr search and zw search are likely to improve alpha 
                     Search(beta);
             }
 
@@ -173,13 +173,14 @@ public class MyBot : IChessBot
 
             if (newScore > bestEval)
             {
-                if (!notRoot) BestMove = move;
-
-                bestMove = move;
                 bestEval = newScore;
-                alpha = Math.Max(alpha, bestEval);
-
-                // Beta cutoff, move is too good, opposing player has a better option (beta) and won't play this subtree
+                if (newScore > alpha)
+                {
+                    alpha = newScore;
+                    bestMove = move;
+                    if (!notRoot) RootMove = move;
+                }
+                // Cutoff
                 if (beta <= alpha)
                 {
                     if (!move.IsCapture)
@@ -187,10 +188,10 @@ public class MyBot : IChessBot
                         Hh[plyFromRoot & 1, (int)move.MovePieceType, move.TargetSquare.Index] += depth * depth;
                         Killers[plyFromRoot] = move;
                     }
-
                     break;
                 }
             }
+
 
             // Out of time break out of the loop
             if (Timer.MillisecondsElapsedThisTurn > TimeLimit) return 100_000;
@@ -224,29 +225,28 @@ public class MyBot : IChessBot
 
         for (int depth = 1, alpha = -100_000, beta = 100_000;;)
         {
-            int score = Pvs(depth, 0, alpha, beta, true);
+            int eval = Pvs(depth, 0, alpha, beta, true);
 
             // Out of time
             if (Timer.MillisecondsElapsedThisTurn > TimeLimit)
                 break;
 
-            if (score <= alpha) alpha -= 100;
-            else if (score >= beta) beta += 100;
+            if (eval <= alpha) 
+                alpha -= 100;
+            else if (eval >= beta) 
+                beta += 100;
             else
             {
-                alpha = score - 20;
-                beta = score + 20;
+                alpha = eval - 25;
+                beta = eval + 25;
                 depth++;
             }
         }
 
-        return BestMove;
+        return RootMove;
     }
 
     #region Evaluation
-
-    // Each piece taken off the board will count towards the endgame strategy
-    private readonly int[] _gamePhaseWeight = { 0, 1, 1, 2, 4, 0 };
 
     //  P   N    B    R     Q    K
     private readonly short[] _pieceValues =
@@ -291,34 +291,30 @@ public class MyBot : IChessBot
         ).ToArray();
     }
 
-    private int Evaluate()
+    int Evaluate()
     {
-        // Variables re-used during evaluate
-        int mg = 0, eg = 0, gamePhase = 0, sideToMove = 2, perspective = Board.IsWhiteToMove ? 1 : -1;
-
+        int mg = 0, eg = 0, gamePhase = 0, sideToMove = 2, piece, sq;
+        
         // Loop the two sides that have to move (white and black)
         // Flip score for optimised token count (always white perspective due to double flip)
         // Eg. White eval = 2300 -> flip -> -2300 -> black eval = 2000 -> -300 -> flip -> 300 k)
         for (; --sideToMove >= 0; mg = -mg, eg = -eg)
+        for (piece = -1; ++piece < 6;)
+        for (ulong mask = Board.GetPieceBitboard((PieceType)piece + 1, sideToMove > 0); mask != 0;)
         {
-            for (int piece = -1; ++piece < 6;)
-            for (ulong mask = Board.GetPieceBitboard((PieceType)piece + 1, sideToMove > 0); mask != 0;)
-            {
-                // The less pieces, the more we bend towards our endgame piece square tables
-                gamePhase += _gamePhaseWeight[piece];
-
-                // A number between 0 to 63 that indicates which square the piece is on, flip for black
-                int squareIndex = BitboardHelper.ClearAndGetIndexOfLSB(ref mask) ^ 56 * sideToMove;
-
-                // Piece (material) values are baked into the PST (!)
-                mg += _pst[squareIndex][piece];
-                eg += _pst[squareIndex][piece + 6];
-            }
+            // Queen is 4, Rook is 2, bishop and knight are 1 and pawn is multiply, shift and mask (extract)
+            gamePhase += 0x00042110 >> piece * 4 & 0x0F;
+            
+            // A number between 0 to 63 that indicates which square the piece is on, flip for black
+            sq = BitboardHelper.ClearAndGetIndexOfLSB(ref mask) ^ 56 * sideToMove;
+            
+            // Piece (material) values are baked into the PST (!)
+            mg += _pst[sq][piece];
+            eg += _pst[sq][piece + 6];
         }
 
-        // Tapered eval
-        return (mg * gamePhase + eg * (24 - gamePhase)) / 24 * perspective +
-               gamePhase / 2;
+        // Tapered eval (+ tempo bonus to help with AW)
+        return (mg * gamePhase + eg * (24 - gamePhase)) / 24 * (Board.IsWhiteToMove ? 1 : -1) + gamePhase / 2;
     }
 
     #endregion
