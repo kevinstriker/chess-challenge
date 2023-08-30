@@ -70,5 +70,9 @@ public static class DebugHelper
         LogDepth(bot.GetType().ToString(), timer, depth, score, bot.Nodes, bot.QNodes, bot.BestMove);
     }
     
-    
+    public static void LogDepth(Timer timer, int depth, int score, TyrantBot8 bot)
+    {
+        LogDepth(bot.GetType().ToString(), timer, depth, score, bot.Nodes, bot.QNodes, bot.BestMove);
+    }
+
 }
