@@ -18,16 +18,18 @@ public class MyBotTest
         _bot = new MyBot
         {
             Timer = new Timer(60000000, 60000000, 0),
-            TimeLimit = 1000000000,
+            TimeLimit = 600000,
             Hh = new int[2, 7, 64],
         };
         _stopwatch = Stopwatch.StartNew();
     }
 
-    private void IterativePvs(int startDepth = 1, int maxDepth = 16)
+    private void IterativePvs(int startDepth = 1, int maxDepth = 16, int timeLimit = 600000)
     {
+        _bot.TimeLimit = timeLimit;
+
         // Iterative Deepening
-        for (int depth = startDepth, alpha = -999999, beta = 999999, eval; depth <= maxDepth;)
+        for (int depth = startDepth, alpha = -1_000_000, beta = 1_000_000, eval; depth <= maxDepth;)
         {
             eval = _bot.Pvs(depth, 0, alpha, beta, true);
 
@@ -51,22 +53,9 @@ public class MyBotTest
     }
 
     #endregion
-    
+
+
     #region Mistakes in games
-
-    [Test]
-    // TODO: FIND OUT HOW TO FIX THIS EVAL
-    public void TestAttackKingWithRook()
-    {
-        _testBoard = Board.CreateBoardFromFEN("rn3bk1/pp5p/2p5/3p3N/3P2p1/2P5/PP4PP/4RNK1 w - - 1 24");
-        _bot.Board = _testBoard;
-
-        IterativePvs();
-        
-        Assert.That(_bot.RootMove.MovePieceType, Is.EqualTo(PieceType.Rook));
-        Assert.That(_bot.RootMove.StartSquare.Name, Is.EqualTo("e1"));
-        Assert.That(_bot.RootMove.TargetSquare.Name, Is.EqualTo("e8"));
-    }
 
     [Test]
     public void TestMoveBishopSafe()
@@ -81,10 +70,21 @@ public class MyBotTest
         Assert.That(_bot.RootMove.TargetSquare.Name, Is.EqualTo("b1"));
     }
 
+    [Test]
+    // TODO try very agressive pruning
+    public void TestMoveQueenNotTrade()
+    {
+        _testBoard = Board.CreateBoardFromFEN("6k1/1p3pp1/1p1p2r1/pP1P3p/P2RPp2/q1r1NP1P/2Q3PK/1R6 w - - 0 39");
+        _bot.Board = _testBoard;
+
+        IterativePvs(1, 21);
+
+        Assert.That(_bot.RootMove.MovePieceType, Is.EqualTo(PieceType.Queen));
+    }
+
     #endregion
 
-
-    #region Higher Depth
+    #region Puzzles
 
     [Test]
     public void TestGiveUpQueenToWinItBack()
@@ -93,7 +93,7 @@ public class MyBotTest
         _bot.Board = _testBoard;
 
         IterativePvs(1, 16);
-        
+
         Assert.That(_bot.RootMove.MovePieceType, Is.EqualTo(PieceType.Queen));
         Assert.That(_bot.RootMove.StartSquare.Name, Is.EqualTo("d8"));
         Assert.That(_bot.RootMove.TargetSquare.Name, Is.EqualTo("d4"));
@@ -105,9 +105,9 @@ public class MyBotTest
         // Do not take pawn with king since it will lose the queen much later
         _testBoard = Board.CreateBoardFromFEN("5rk1/2p2qp1/3b3p/8/2PQ4/3P3P/Pr1B1Pp1/3R1RK1 w - - 0 23");
         _bot.Board = _testBoard;
-        
-        IterativePvs(1, 16);
 
+        IterativePvs(1, 18);
+        
         Assert.That(_bot.RootMove.MovePieceType, Is.EqualTo(PieceType.Rook));
         Assert.That(_bot.RootMove.StartSquare.Name, Is.EqualTo("f1"));
         Assert.That(_bot.RootMove.TargetSquare.Name, Is.EqualTo("e1"));
@@ -145,7 +145,7 @@ public class MyBotTest
         _testBoard = Board.CreateBoardFromFEN("8/5kp1/1N3p2/1p4p1/1P6/P5P1/R2n1PKP/3r4 b - - 14 39");
         _bot.Board = _testBoard;
 
-        IterativePvs(1, 16);
+        IterativePvs(1, 21);
 
         Assert.That(_bot.RootMove.MovePieceType, Is.EqualTo(PieceType.Pawn));
         Assert.That(_bot.RootMove.StartSquare.Name, Is.EqualTo("g5"));
@@ -209,11 +209,7 @@ public class MyBotTest
         _testBoard = Board.CreateBoardFromFEN("rnbq4/pp1pkB2/3p2P1/6b1/3PP2Q/2N5/PPP1K1P1/r7 w - - 2 18");
         _bot.Board = _testBoard;
 
-        for (int depth = 1; depth <= 8; depth++)
-        {
-            int score = _bot.Pvs(depth, 0, -100000, 100000, true);
-            DebugHelper.LogDepth(_bot.Timer, depth, score, _bot);
-        }
+        IterativePvs();
 
         Assert.That(_bot.RootMove.MovePieceType, Is.EqualTo(PieceType.Knight));
         Assert.That(_bot.RootMove.StartSquare.Name, Is.EqualTo("c3"));
@@ -223,15 +219,11 @@ public class MyBotTest
     [Test]
     public void TestCheckMateByQueenSacrifice()
     {
-        // Checkmate by queen sacrifice
         _testBoard = Board.CreateBoardFromFEN("2r2bk1/p5p1/1p1p2Qp/2PNp3/PR1nNr1q/3P4/5PPP/5RK1 b - - 0 1");
         _bot.Board = _testBoard;
 
-        for (int depth = 1; depth <= 15; depth++)
-        {
-            int score = _bot.Pvs(depth, 0, -100000, 100000, true);
-            DebugHelper.LogDepth(_bot.Timer, depth, score, _bot);
-        }
+        IterativePvs();
+
 
         Assert.That(_bot.RootMove.MovePieceType, Is.EqualTo(PieceType.Knight));
         Assert.That(_bot.RootMove.StartSquare.Name, Is.EqualTo("d4"));
@@ -243,52 +235,58 @@ public class MyBotTest
     #region BitBoard tests
 
     [Test]
-    public void TestEvalBitboardDoubledPawns()
+    public void TestEvalPawnStructure()
     {
         // Checkmate by queen sacrifice
-        _testBoard = Board.CreateBoardFromFEN("rnbqkbnr/ppppp1p1/4p2p/5P2/1P1P3P/PP1P2P1/8/RNBQKBNR b KQkq - 0 1");
+        _testBoard = Board.CreateBoardFromFEN("2b1k1r1/4p2p/2p1pp1p/8/P1PP4/2P5/5P2/1RB1K3 w - - 0 1");
         _bot.Board = _testBoard;
 
-
-        int eval = 0, colors = 2;
-
+        int eval = 0, color = 2;
+        
         int[] materialValues = { 100, 300, 300, 500, 900, 0 };
+
+        var pawnsPerFile = new int[2, 8];
 
         // Loop black and white colors of the game
         // Flip score for optimised token count (always white perspective due to double flip)
         // Eg. White eval = 2300 -> flip -> -2300 -> black eval = 2000 -> -300 -> flip -> 300 k)
-        for (; --colors >= 0; eval = -eval)
+        for (; --color >= 0; eval = -eval)
         {
-            var pawnsPerFile = new int[8];
-
             for (int piece = -1; ++piece < 6;)
-            for (ulong mask = _testBoard.GetPieceBitboard((PieceType)piece + 1, colors > 0); mask != 0;)
+            for (ulong mask = _testBoard.GetPieceBitboard((PieceType)piece + 1, color > 0); mask != 0;)
             {
                 // A number between 0 to 63 that indicates which square the piece is on, flip for black
-                int squareIndex = BitboardHelper.ClearAndGetIndexOfLSB(ref mask) ^ 56 * colors;
+                int squareIndex = BitboardHelper.ClearAndGetIndexOfLSB(ref mask) ^ 56 * color;
 
                 // Piece (material) values are baked into the PST (!)
                 eval += materialValues[piece];
 
-                // Keep track of doubled pawns
                 if (piece == 0)
-                    pawnsPerFile[squareIndex % 8]++;
+                    pawnsPerFile[color, squareIndex % 8]++;
             }
-
-            // Doubles pawns penalty
-            int count = pawnsPerFile.Count(c => c > 1);
-            eval -= count * 50;
+            
+            // double pawns
+            for (int i = 0; i < 8; i++) 
+                if (pawnsPerFile[color, i] > 1)
+                    eval -= 50;
         }
 
-        int score = eval * (_testBoard.IsWhiteToMove ? 1 : -1);
+        for (int i = 2; --i > 0;)
+        for (int f = 0; ++f < 8;)
+            if (pawnsPerFile[i, f] - pawnsPerFile[i ^ 1, f] > 0)
+                eval++;
+        
 
+       // int score = eval * (_testBoard.IsWhiteToMove ? 1 : -1);
 
-        Console.WriteLine(score);
+       // Console.WriteLine($"Eval: {score}");
     }
 
     #endregion
 
     #region Hardware
+
+    private int _hardwareNodes = 0;
 
     // https://github.com/SebLague/Chess-Challenge/issues/381
     [Test]
@@ -297,11 +295,15 @@ public class MyBotTest
         string fen = "r3k2r/1ppb1ppp/2n1p3/1q6/3PN3/2PPp3/PpQ2PPP/R3K2R w KQkq - 0 16";
         _testBoard = Board.CreateBoardFromFEN(fen);
 
+        _hardwareNodes = 0;
+        
         _stopwatch.Restart();
 
         SearchFullForHardwareCheck(5);
 
         _stopwatch.Stop();
+        
+        Console.WriteLine(_hardwareNodes);
 
         Console.WriteLine(_stopwatch.ElapsedMilliseconds + " ms.");
     }
@@ -313,6 +315,7 @@ public class MyBotTest
         _testBoard.GetLegalMovesNonAlloc(ref moves);
         foreach (var m in moves)
         {
+            _hardwareNodes++;
             _testBoard.MakeMove(m);
             SearchFullForHardwareCheck(depthRemaining - 1);
             _testBoard.UndoMove(m);

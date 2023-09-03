@@ -45,6 +45,7 @@ namespace ChessChallenge.Application
             TyrantBot6,
             TyrantBot7,
             TyrantBot8,
+            WindfallBot,
             StockFishBot
         }
 
@@ -76,6 +77,7 @@ namespace ChessChallenge.Application
                 PlayerType.TyrantBot6 => new TyrantBot6(),
                 PlayerType.TyrantBot7 => new TyrantBot7(),
                 PlayerType.TyrantBot8 => new TyrantBot8(),
+                PlayerType.WindfallBot => new WindfallBot(),
                 PlayerType.StockFishBot => new StockFishBot(),
                 _ => null
             };
@@ -286,6 +288,7 @@ namespace ChessChallenge.Application
                 PlayerType.TyrantBot6 => new ChessPlayer(new TyrantBot6(), type, GameDurationMilliseconds),
                 PlayerType.TyrantBot7 => new ChessPlayer(new TyrantBot7(), type, GameDurationMilliseconds),
                 PlayerType.TyrantBot8 => new ChessPlayer(new TyrantBot8(), type, GameDurationMilliseconds),
+                PlayerType.WindfallBot => new ChessPlayer(new WindfallBot(), type, GameDurationMilliseconds),
                 PlayerType.StockFishBot => new ChessPlayer(new StockFishBot(), type, GameDurationMilliseconds),
                 _ => new ChessPlayer(new HumanPlayer(boardUI), type)
             };

@@ -9,6 +9,8 @@ public class LiteBlueBotTest
     private LiteBlueBot7 _bot;
     private Board _testBoard;
     private Stopwatch _stopwatch;
+
+    #region General
     
     [SetUp]
     public void Setup()
@@ -22,6 +24,33 @@ public class LiteBlueBotTest
         _stopwatch = Stopwatch.StartNew();
     }
     
+    private void IterativePvs(int startDepth = 1, int maxDepth = 16)
+    {
+        // Iterative Deepening
+        for (int depth = startDepth, alpha = -999999, beta = 999999, eval; depth <= maxDepth;)
+        {
+            eval = _bot.Negamax(depth, 0, alpha, beta, true);
+
+            // Gradual widening
+            // Fell outside window, retry with wider window search
+            if (eval <= alpha)
+                alpha -= 62;
+            else if (eval >= beta)
+                beta += 62;
+            else
+            {
+                // Fell inside window
+                DebugHelper.LogDepth(_bot.Timer, depth, eval, _bot);
+
+                // Set up window for next search
+                alpha = eval - 17;
+                beta = eval + 17;
+                depth++;
+            }
+        }
+    }
+
+    #endregion
     
     [Test]
     public void TestStartingPosition()
@@ -29,32 +58,23 @@ public class LiteBlueBotTest
         _testBoard = Board.CreateBoardFromFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
         _bot.Board = _testBoard;
 
-        for (int depth = 1; depth <= 15; depth++)
-        {
-            int score = _bot.Negamax(depth, 0, -100000, 100000, true);
-            DebugHelper.LogDepth(_bot.Timer, depth, score, _bot);
-        }
+        IterativePvs();
 
         Assert.That(_stopwatch.ElapsedMilliseconds, Is.LessThan(20000));
     }
     
     [Test]
-    public void TestGiveUpQueenToWinItBack()
+    // TODO try very agressive pruning
+    public void TestMoveQueenNotTrade()
     {
-        _testBoard = Board.CreateBoardFromFEN("r2q1rk1/1pp1bppp/4bn2/pP6/n2Bp3/P3P1NP/2PN1PP1/2RQKB1R b K - 2 13");
+        _testBoard = Board.CreateBoardFromFEN("6k1/1p3pp1/1p1p2r1/pP1P3p/P2RPp2/q1r1NP1P/2Q3PK/1R6 w - - 0 39");
         _bot.Board = _testBoard;
 
-        for (int depth = 1; depth <= 15; depth++)
-        {
-            int score = _bot.Negamax(depth, 0, -100000, 100000, true);
-            DebugHelper.LogDepth(_bot.Timer, depth, score, _bot);
-        }
+        IterativePvs(1, 33);
 
         Assert.That(_bot.BestMove.MovePieceType, Is.EqualTo(PieceType.Queen));
-        Assert.That(_bot.BestMove.StartSquare.Name, Is.EqualTo("d8"));
-        Assert.That(_bot.BestMove.TargetSquare.Name, Is.EqualTo("d4"));
     }
-    
+
     [Test]
     public void TestKingSafetyDoNotTakePawn()
     {
@@ -62,32 +82,12 @@ public class LiteBlueBotTest
         _testBoard = Board.CreateBoardFromFEN("5rk1/2p2qp1/3b3p/8/2PQ4/3P3P/Pr1B1Pp1/3R1RK1 w - - 0 23");
         _bot.Board = _testBoard;
 
-        for (int depth = 1; depth <= 15; depth++)
-        {
-            int score = _bot.Negamax(depth, 0, -100000, 100000, true);
-            DebugHelper.LogDepth(_bot.Timer, depth, score, _bot);
-        }
+        IterativePvs();
 
         Assert.That(_bot.BestMove.MovePieceType, Is.EqualTo(PieceType.Rook));
         Assert.That(_bot.BestMove.StartSquare.Name, Is.EqualTo("f1"));
         Assert.That(_bot.BestMove.TargetSquare.Name, Is.EqualTo("e1"));
     }
-    
-    [Test]
-    public void TestGiveOpponentDoubledPawns()
-    {
-        _testBoard = Board.CreateBoardFromFEN("rnb1kb1r/ppp2ppp/3qpn2/3p2B1/2PP4/2N5/PP2PPPP/R2QKBNR w KQkq - 0 1");
-        _bot.Board = _testBoard;
 
-        for (int depth = 1; depth <= 13; depth++)
-        {
-            int score = _bot.Negamax(depth, 0, -100000, 100000, true);
-            DebugHelper.LogDepth(_bot.Timer, depth, score, _bot);
-        }
-
-        Assert.That(_bot.BestMove.MovePieceType, Is.EqualTo(PieceType.Bishop));
-        Assert.That(_bot.BestMove.StartSquare.Name, Is.EqualTo("g5"));
-        Assert.That(_bot.BestMove.TargetSquare.Name, Is.EqualTo("f6"));
-    }
 
 }

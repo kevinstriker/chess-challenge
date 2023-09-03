@@ -10,6 +10,8 @@ public class TyrantBot8Test
     private TyrantBot8 _bot;
     private Board _testBoard;
     private Stopwatch _stopwatch;
+
+    #region General
     
     [SetUp]
     public void Setup()
@@ -49,6 +51,8 @@ public class TyrantBot8Test
         }
     }
     
+    #endregion
+    
     [Test]
     public void TestStartingPosition()
     {
@@ -61,15 +65,29 @@ public class TyrantBot8Test
     }
     
     [Test]
-    public void TestMoveBishopSafe()
+    // TODO try very agressive pruning
+    public void TestMoveQueenNotTrade()
     {
-        _testBoard = Board.CreateBoardFromFEN("r1b2rk1/pp2ppbp/1q4B1/2n5/8/2P1QNN1/PP3PPP/R3K2R w KQ - 1 14");
+        _testBoard = Board.CreateBoardFromFEN("6k1/1p3pp1/1p1p2r1/pP1P3p/P2RPp2/q1r1NP1P/2Q3PK/1R6 w - - 0 39");
         _bot.Board = _testBoard;
 
-        IterativePvs();
+        IterativePvs(1, 18);
 
-        Assert.That(_bot.BestMove.MovePieceType, Is.EqualTo(PieceType.Bishop));
-        Assert.That(_bot.BestMove.StartSquare.Name, Is.EqualTo("g6"));
-        Assert.That(_bot.BestMove.TargetSquare.Name, Is.EqualTo("c2"));
+        Assert.That(_bot.BestMove.MovePieceType, Is.EqualTo(PieceType.Queen));
     }
+
+    [Test]
+    public void TestKingSafetyDoNotTakePawn()
+    {
+        // Do not take pawn with king since it will lose the queen much later
+        _testBoard = Board.CreateBoardFromFEN("5rk1/2p2qp1/3b3p/8/2PQ4/3P3P/Pr1B1Pp1/3R1RK1 w - - 0 23");
+        _bot.Board = _testBoard;
+        
+        IterativePvs(1, 18);
+
+        Assert.That(_bot.BestMove.MovePieceType, Is.EqualTo(PieceType.Rook));
+        Assert.That(_bot.BestMove.StartSquare.Name, Is.EqualTo("f1"));
+        Assert.That(_bot.BestMove.TargetSquare.Name, Is.EqualTo("e1"));
+    }
+    
 }

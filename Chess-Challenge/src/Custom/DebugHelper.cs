@@ -23,7 +23,7 @@ public static class DebugHelper
         // Depth level
         botName = botName.Replace("Bot", "");
         string depthString = $"{boldText}{orangeColor}{botName} - {depth} ply{resetFormat}";
-        depthString += string.Concat(Enumerable.Repeat(" ", 52 - depthString.Length));
+        depthString += string.Concat(Enumerable.Repeat(" ", 46 - depthString.Length));
 
         // Time
         string timeString =
