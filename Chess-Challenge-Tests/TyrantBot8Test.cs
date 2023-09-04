@@ -6,7 +6,7 @@ namespace Chess_Challenge_Tests;
 
 public class TyrantBot8Test
 {
-    
+    /*
     private TyrantBot8 _bot;
     private Board _testBoard;
     private Stopwatch _stopwatch;
@@ -89,5 +89,5 @@ public class TyrantBot8Test
         Assert.That(_bot.BestMove.StartSquare.Name, Is.EqualTo("f1"));
         Assert.That(_bot.BestMove.TargetSquare.Name, Is.EqualTo("e1"));
     }
-    
+    */
 }

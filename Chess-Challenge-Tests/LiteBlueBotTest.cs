@@ -40,7 +40,7 @@ public class LiteBlueBotTest
             else
             {
                 // Fell inside window
-                DebugHelper.LogDepth(_bot.Timer, depth, eval, _bot);
+                //DebugHelper.LogDepth(_bot.Timer, depth, eval, _bot);
 
                 // Set up window for next search
                 alpha = eval - 17;

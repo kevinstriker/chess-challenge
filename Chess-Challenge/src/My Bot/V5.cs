@@ -153,7 +153,7 @@ public class V5 : IChessBot
                 Search(beta);
             } else {
                 // Late move reduction search
-                if (!tactical && !inCheck && movesSearched > 5 && depth > 2) Search(alpha + 1, 3);
+                if (!tactical && !inCheck && movesSearched > 5 && depth > 3) Search(alpha + 1, 3);
                 // Hack to ensure we'll go into the try for full search
                 else newScore = alpha + 1; 
                 
