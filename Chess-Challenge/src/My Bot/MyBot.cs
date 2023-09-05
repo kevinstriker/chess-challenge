@@ -1,4 +1,4 @@
-﻿#define X
+﻿//#define X
 
 using ChessChallenge.API;
 using System;
@@ -13,8 +13,6 @@ using System.Linq;
  * V5: Late move reduction, token savings
  * V6: Span<Move> for moves collection, allowNull to prevent double pruning, more effective alpha beta update and beta cutoff, token optimalisation
  */
-
-// TODO: Try depth * depth window and not only do 1 bound
 
 public class MyBot : IChessBot
 {
@@ -56,11 +54,11 @@ public class MyBot : IChessBot
 
         // History Heuristics: keep track on great moves that caused a cutoff to retry them
         // Based on a lookup by color, piece type and target square
-        int[,,] hh = new int[2, 7, 64];
+        var hh = new int[2, 7, 64];
 
         // Killer moves: keep track on great moves that caused a cutoff to retry them
         // Based on a lookup by depth
-        Move[] killers = new Move[2048];
+        var killers = new Move[2, 128];
 
         // 1/30th of our remaining time, split among all of the moves
         _timeLimit = timer.MillisecondsRemaining / 30;
@@ -77,7 +75,7 @@ public class MyBot : IChessBot
             // Out of time
             if (timer.MillisecondsElapsedThisTurn > _timeLimit)
                 return RootMove;
-            
+
             // Gradual widening
             // Fell outside window, retry with wider window search
             if (eval <= alpha)
@@ -133,7 +131,7 @@ public class MyBot : IChessBot
             // Internal iterative reduction
             //if (depth > 3)
             //    depth--;
-            
+
             // Check extensions
             if (inCheck)
                 depth++;
@@ -163,7 +161,7 @@ public class MyBot : IChessBot
                 {
                     board.ForceSkipTurn();
                     // depth - (1 + Reduction), using the classic 2 for reduction
-                    Search(beta, 3 + depth / 4, false);
+                    Search(beta, 3 + (depth >> 2), false);
                     board.UndoSkipTurn();
                     // Prune branch when the side who got a free move can't even improve
                     if (beta <= pvsEval) return pvsEval;
@@ -183,7 +181,7 @@ public class MyBot : IChessBot
                 MoveScores[movesScored++] = -(
                     move == ttEntry.Item5 ? 9_000_000 :
                     move.IsCapture ? 1_000_000 * (int)move.CapturePieceType - (int)move.MovePieceType :
-                    killers[plyFromRoot] == move ? 900_000 :
+                    killers[0, plyFromRoot] == move || killers[1, plyFromRoot] == move ? 900_000 :
                     hh[plyFromRoot & 1, (int)move.MovePieceType, move.TargetSquare.Index]);
 
             MoveScores.AsSpan(0, moveSpan.Length).Sort(moveSpan);
@@ -199,6 +197,7 @@ public class MyBot : IChessBot
                 if (depth > 0) Nodes++;
                 else QNodes++;
 #endif
+
                 // Futility pruning on non tactical nodes
                 if (canFutilityPrune && !(movesSearched == 0 || move.IsCapture || move.IsPromotion))
                     continue;
@@ -213,7 +212,7 @@ public class MyBot : IChessBot
                 else
                 {
                     // Late move reduction search 
-                    if (movesSearched >= 6 && depth > 1 && killers[plyFromRoot] != move)
+                    if (movesSearched >= 6 && depth > 1)
                         Search(alpha + 1, 3);
                     else
                         pvsEval = alpha + 1;
@@ -245,7 +244,8 @@ public class MyBot : IChessBot
                         if (!move.IsCapture)
                         {
                             hh[plyFromRoot & 1, (int)move.MovePieceType, move.TargetSquare.Index] += depth * depth;
-                            killers[plyFromRoot] = move;
+                            killers[1, plyFromRoot] = killers[0, plyFromRoot];
+                            killers[0, plyFromRoot] = bestMove;
                         }
 
                         break;
