@@ -1,12 +1,12 @@
-﻿using System;
+using System;
 using System.Linq;
 using ChessChallenge.API;
 
-public class MyBot : IChessBot
+public class NanoV1 : IChessBot
 {
     private Move _bestRootMove;
 
-    private static int GetPieceValue(PieceType pieceType) => new[] { 0, 100, 310, 330, 500, 900, 10000 }[(int)pieceType];
+    private static int GetPieceValue(PieceType pieceType) => new[] { 0, 100, 300, 310, 500, 900, 10000 }[(int)pieceType];
     
     public Move Think(Board board, Timer timer)
     {

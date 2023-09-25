@@ -6,7 +6,7 @@ using ChessChallenge.Example;
 
 public static class DebugHelper
 {
-    public static void LogDepth(String botName, Timer timer, int depth, int score, int nodes, int qnodes, Move bestMove)
+    public static void LogDepth(String botName, Timer timer, int depth, double score, int nodes, int qnodes, Move bestMove)
     {
         // Color codes
         string textColor = "\x1b[37m";

@@ -24,30 +24,17 @@ namespace ChessChallenge.Application
             Human,
             MyBot,
             EvilBot,
-            // Custom: my previous versions of the bot
-            V1,
-            V2,
-            V3,
-            V4,
-            V5,
-            V6,
-            // Custom: other bots
-            NegaMaxBot, // T1
-            JacquesBot, // T2
-            JeffBot,
-            LiteBlueBot1,
-            LiteBlueBot2,
-            LiteBlueBot3,
-            LiteBlueBot4,
-            LiteBlueBot5,
-            LiteBlueBot6,
-            LiteBlueBot7,
-            TyrantBot6,
-            TyrantBot7,
-            TyrantBot8,
-            WindfallBot,
-            StockFishBot
-        }
+            
+            // Custom: my versioning bots
+            NanoV1,
+            
+            // Custom: bots of others
+            ErwanF,             // Place 1
+            SmallCaps,          // Place 2
+            MrX,                // Place 3
+            Clairvoyance,       // Place 7
+            DjNano,             // Place 10
+        }   
 
         public static IChessBot? CreateBot(PlayerType type)
         {
@@ -56,29 +43,12 @@ namespace ChessChallenge.Application
                 // Default bots
                 PlayerType.MyBot => new MyBot(),
                 PlayerType.EvilBot => new EvilBot(),
-                // Custom: my previous version
-                PlayerType.V1 => new V1(),
-                PlayerType.V2 => new V2(),
-                PlayerType.V3 => new V3(),
-                PlayerType.V4 => new V4(),
-                PlayerType.V5 => new V5(),
-                PlayerType.V6 => new V6(),
-                // Custom: other bots
-                PlayerType.NegaMaxBot => new NegaMaxBot(),
-                PlayerType.JacquesBot => new JacquesBot(),
-                PlayerType.JeffBot => new JeffBot(),
-                PlayerType.LiteBlueBot1 => new LiteBlueBot1(),
-                PlayerType.LiteBlueBot2 => new LiteBlueBot2(),
-                PlayerType.LiteBlueBot3 => new LiteBlueBot3(),
-                PlayerType.LiteBlueBot4 => new LiteBlueBot4(),
-                PlayerType.LiteBlueBot5 => new LiteBlueBot5(),
-                PlayerType.LiteBlueBot6 => new LiteBlueBot6(),
-                PlayerType.LiteBlueBot7 => new LiteBlueBot7(),
-                PlayerType.TyrantBot6 => new TyrantBot6(),
-                PlayerType.TyrantBot7 => new TyrantBot7(),
-                PlayerType.TyrantBot8 => new TyrantBot8(),
-                PlayerType.WindfallBot => new WindfallBot(),
-                PlayerType.StockFishBot => new StockFishBot(),
+                PlayerType.NanoV1 => new NanoV1(),
+                PlayerType.ErwanF => new ErwanF(), 
+                PlayerType.SmallCaps => new SmallCaps(),
+                PlayerType.MrX => new MrX(), 
+                PlayerType.Clairvoyance => new Clairvoyance(), 
+                PlayerType.DjNano => new DjNano(), 
                 _ => null
             };
         }
@@ -269,27 +239,12 @@ namespace ChessChallenge.Application
             {
                 PlayerType.MyBot => new ChessPlayer(new MyBot(), type, GameDurationMilliseconds),
                 PlayerType.EvilBot => new ChessPlayer(new EvilBot(), type, GameDurationMilliseconds),
-                PlayerType.V1 => new ChessPlayer(new V1(), type, GameDurationMilliseconds),
-                PlayerType.V2 => new ChessPlayer(new V2(), type, GameDurationMilliseconds),
-                PlayerType.V3 => new ChessPlayer(new V3(), type, GameDurationMilliseconds),
-                PlayerType.V4 => new ChessPlayer(new V4(), type, GameDurationMilliseconds),
-                PlayerType.V5 => new ChessPlayer(new V5(), type, GameDurationMilliseconds),
-                PlayerType.V6 => new ChessPlayer(new V6(), type, GameDurationMilliseconds),
-                PlayerType.NegaMaxBot => new ChessPlayer(new NegaMaxBot(), type, GameDurationMilliseconds),
-                PlayerType.JacquesBot => new ChessPlayer(new JacquesBot(), type, GameDurationMilliseconds),
-                PlayerType.JeffBot => new ChessPlayer(new JeffBot(), type, GameDurationMilliseconds),
-                PlayerType.LiteBlueBot1 => new ChessPlayer(new LiteBlueBot1(), type, GameDurationMilliseconds),
-                PlayerType.LiteBlueBot2 => new ChessPlayer(new LiteBlueBot2(), type, GameDurationMilliseconds),
-                PlayerType.LiteBlueBot3 => new ChessPlayer(new LiteBlueBot3(), type, GameDurationMilliseconds),
-                PlayerType.LiteBlueBot4 => new ChessPlayer(new LiteBlueBot4(), type, GameDurationMilliseconds),
-                PlayerType.LiteBlueBot5 => new ChessPlayer(new LiteBlueBot5(), type, GameDurationMilliseconds),
-                PlayerType.LiteBlueBot6 => new ChessPlayer(new LiteBlueBot6(), type, GameDurationMilliseconds),
-                PlayerType.LiteBlueBot7 => new ChessPlayer(new LiteBlueBot7(), type, GameDurationMilliseconds),
-                PlayerType.TyrantBot6 => new ChessPlayer(new TyrantBot6(), type, GameDurationMilliseconds),
-                PlayerType.TyrantBot7 => new ChessPlayer(new TyrantBot7(), type, GameDurationMilliseconds),
-                PlayerType.TyrantBot8 => new ChessPlayer(new TyrantBot8(), type, GameDurationMilliseconds),
-                PlayerType.WindfallBot => new ChessPlayer(new WindfallBot(), type, GameDurationMilliseconds),
-                PlayerType.StockFishBot => new ChessPlayer(new StockFishBot(), type, GameDurationMilliseconds),
+                PlayerType.NanoV1 => new ChessPlayer(new NanoV1(), type, GameDurationMilliseconds),
+                PlayerType.ErwanF => new ChessPlayer(new ErwanF(), type, GameDurationMilliseconds),
+                PlayerType.SmallCaps => new ChessPlayer(new SmallCaps(), type, GameDurationMilliseconds),
+                PlayerType.MrX => new ChessPlayer(new MrX(), type, GameDurationMilliseconds),
+                PlayerType.Clairvoyance => new ChessPlayer(new Clairvoyance(), type, GameDurationMilliseconds),
+                PlayerType.DjNano => new ChessPlayer(new DjNano(), type, GameDurationMilliseconds),
                 _ => new ChessPlayer(new HumanPlayer(boardUI), type)
             };
         }

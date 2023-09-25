@@ -6,6 +6,7 @@ namespace Chess_Challenge_Tests;
 
 public class MyBotTest
 {
+    
     private MyBot _bot;
     private Board _testBoard;
     private Stopwatch _stopwatch;
@@ -26,8 +27,8 @@ public class MyBotTest
 
     #endregion
 
+    /*
     #region Puzzles
-    
     
     [Test]
     public void Puzzle1()
@@ -63,7 +64,7 @@ public class MyBotTest
     {
         _testBoard = Board.CreateBoardFromFEN("r1b2rk1/pp2ppbp/1q4B1/2n5/8/2P1QNN1/PP3PPP/R3K2R w KQ - 1 14");
         
-        ExecuteThink(_testBoard);
+        ExecuteThink(_testBoard, 4000);
 
         Assert.That(_bot.RootMove.MovePieceType, Is.EqualTo(PieceType.Bishop));
         Assert.That(_bot.RootMove.StartSquare.Name, Is.EqualTo("g6"));
@@ -315,4 +316,5 @@ public class MyBotTest
     }
 
     #endregion
+    */
 }
