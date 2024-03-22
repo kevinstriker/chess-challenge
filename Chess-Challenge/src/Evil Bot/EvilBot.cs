@@ -14,7 +14,7 @@ namespace ChessChallenge.Example
         {
             Move[] allMoves = board.GetLegalMoves();
 
-            // Pick a random move to play if nothing better is found
+            // Pick a random move to play if nothing good is found
             Random rng = new();
             Move moveToPlay = allMoves[rng.Next(allMoves.Length)];
             int highestValueCapture = 0;

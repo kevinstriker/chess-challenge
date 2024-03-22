@@ -9,7 +9,6 @@
 // 
 // 
 
-
 //#define DEBUG
 
 using ChessChallenge.API;
