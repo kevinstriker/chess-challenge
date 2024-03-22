@@ -1,6 +1,4 @@
-﻿using auto_Bot_514;
-using auto_Bot_591;
-using ChessChallenge.Chess;
+﻿using ChessChallenge.Chess;
 using ChessChallenge.Example;
 using Raylib_cs;
 using System;
@@ -29,12 +27,11 @@ namespace ChessChallenge.Application
             EvilBot,
             
             // 400 bots
-            
+            TinyV1,
             
             // 200 bots
             ErwanF,             // Place 1
-            ErwanF2,            // Place 1
-            ErwanF3,            // Place 1
+            ErwanF2,            // Place 1 +100 elo
             SmallCaps,          // Place 2
             MrX,                // Place 3
             Clairvoyance,       // Place 7
@@ -55,10 +52,12 @@ namespace ChessChallenge.Application
                 PlayerType.MyBot => new MyBot(),
                 PlayerType.EvilBot => new EvilBot(),
                 
+                // 400 bots
+                PlayerType.TinyV1 => new TinyV1(), 
+                
                 // 200 bots
                 PlayerType.ErwanF => new ErwanF(), 
                 PlayerType.ErwanF2 => new ErwanF2(), 
-                PlayerType.ErwanF3 => new ErwanF3(), 
                 PlayerType.SmallCaps => new SmallCaps(),
                 PlayerType.MrX => new MrX(), 
                 PlayerType.Clairvoyance => new Clairvoyance(), 
@@ -79,7 +78,7 @@ namespace ChessChallenge.Application
         bool isPlaying;
         Board board;
         public ChessPlayer PlayerWhite { get; private set; }
-        public ChessPlayer PlayerBlack {get;private set;}
+        public ChessPlayer PlayerBlack { get; private set; }
 
         float lastMoveMadeTime;
         bool isWaitingToPlayMove;
@@ -91,7 +90,7 @@ namespace ChessChallenge.Application
         readonly string[] botMatchStartFens;
         int botMatchGameIndex;
         public BotMatchStats BotStatsA { get; private set; }
-        public BotMatchStats BotStatsB {get;private set;}
+        public BotMatchStats BotStatsB { get; private set; }
         bool botAPlaysWhite;
 
 
@@ -261,17 +260,18 @@ namespace ChessChallenge.Application
                 PlayerType.MyBot => new ChessPlayer(new MyBot(), type, GameDurationMilliseconds),
                 PlayerType.EvilBot => new ChessPlayer(new EvilBot(), type, GameDurationMilliseconds),
                 
+                // 400 bots
+                PlayerType.TinyV1 => new ChessPlayer(new TinyV1(), type, GameDurationMilliseconds),
+                
                 // 200 bots
                 PlayerType.ErwanF => new ChessPlayer(new ErwanF(), type, GameDurationMilliseconds),
                 PlayerType.ErwanF2 => new ChessPlayer(new ErwanF2(), type, GameDurationMilliseconds),
-                PlayerType.ErwanF3 => new ChessPlayer(new ErwanF3(), type, GameDurationMilliseconds),
                 PlayerType.SmallCaps => new ChessPlayer(new SmallCaps(), type, GameDurationMilliseconds),
                 PlayerType.MrX => new ChessPlayer(new MrX(), type, GameDurationMilliseconds),
                 PlayerType.Clairvoyance => new ChessPlayer(new Clairvoyance(), type, GameDurationMilliseconds),
                 PlayerType.DjNano => new ChessPlayer(new DjNano(), type, GameDurationMilliseconds),
                 
                 // 400 bots
-                
                 
                 // 1024 bots
                 PlayerType.Boychesser => new ChessPlayer(new Boychesser(), type, GameDurationMilliseconds),

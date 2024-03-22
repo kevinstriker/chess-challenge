@@ -1,5 +1,3 @@
-namespace auto_Bot_591;
-
 using ChessChallenge.API;
 using System;
 using System.Linq;

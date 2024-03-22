@@ -48,7 +48,6 @@ public class ErwanF2 : IChessBot
         board.UndoMove(move);
       }
 
-
       return alpha;
     }
 

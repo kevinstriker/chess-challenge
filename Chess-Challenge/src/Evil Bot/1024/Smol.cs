@@ -1,4 +1,3 @@
-namespace auto_Bot_514;
 // Project: smol.cs
 // License: MIT
 // Authors: Gediminas Masaitis, Goh CJ (cj5716)
