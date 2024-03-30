@@ -326,19 +326,19 @@ public class V8 : IChessBot
                         middlegame += _unpackedPsts[piece * 64 + square]; // Also credit to Gonumen for this
                         endgame += _unpackedPsts[piece * 64 + square + 384]; // And this!
 
-                        // Bishop pair bonus (+14.1 elo alone)
-                        if (piece == 2 && mask != 0)
-                        {
-                            middlegame += 23;
-                            endgame += 62;
-                        }
-
-                        // Doubled pawn penalty (TODO get elo bonus from this)
-                        if (piece == 0 && (0x101010101010101UL << (square & 7) & mask) > 0)
-                        {
-                            middlegame -= 15; // RETUNE THIS!
-                            endgame -= 15;
-                        }
+                        // // Bishop pair bonus (+14.1 elo alone)
+                        // if (piece == 2 && mask != 0)
+                        // {
+                        //     middlegame += 23;
+                        //     endgame += 62;
+                        // }
+                        //
+                        // // Doubled pawn penalty (TODO get elo bonus from this)
+                        // if (piece == 0 && (0x101010101010101UL << (square & 7) & mask) > 0)
+                        // {
+                        //     middlegame -= 15; // RETUNE THIS!
+                        //     endgame -= 15;
+                        // }
 
                         // Cheap mobility bonus
                         // TODO this seems to actually be losing elo so we need to test this out later

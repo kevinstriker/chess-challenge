@@ -8,12 +8,72 @@
 -sprt elo0=0 elo1=10 alpha=0.10 beta=0.10 \
 -pgnout sprt.pgn
 
-# ErwanF vs ErwanF3
+# MyBot vs DjNano
 /Users/kevinvermaat/Documents/testprojects/CuteChess1.3.0/CuteChess/build/cutechess-cli \
--engine name="ErwanF" cmd="/Users/kevinvermaat/Documents/testprojects/chess-challenge-kevin/Chess-Challenge/bin/Release/net6.0/Chess-Challenge" arg="uci" arg="ErwanF" \
--engine name="ErwanF3" cmd="/Users/kevinvermaat/Documents/testprojects/chess-challenge-kevin/Chess-Challenge/bin/Release/net6.0/Chess-Challenge" arg="uci" arg="ErwanF3" \
+-engine name="MyBot" cmd="/Users/kevinvermaat/Documents/testprojects/chess-challenge-kevin/Chess-Challenge/bin/Release/net6.0/Chess-Challenge" arg="uci" arg="MyBot" \
+-engine name="DjNano" cmd="/Users/kevinvermaat/Documents/testprojects/chess-challenge-kevin/Chess-Challenge/bin/Release/net6.0/Chess-Challenge" arg="uci" arg="DjNano" \
 -openings file=/Users/kevinvermaat/Documents/testprojects/chess-challenge-kevin/Chess-Challenge/resources/Custom/UHO_XXL_+0.80_+1.09.pgn format=pgn order=random plies=8 \
--each proto=uci tc=10+0.10 restart=on \
--concurrency 5 -maxmoves 200 -rounds 10 \
+-each proto=uci tc=10+0.1 restart=on \
+-concurrency 5 -maxmoves 200 -rounds 100 \
+-sprt elo0=0 elo1=10 alpha=0.10 beta=0.10 \
+-pgnout sprt.pgn
+
+# MyBot vs Clairvoyance
+/Users/kevinvermaat/Documents/testprojects/CuteChess1.3.0/CuteChess/build/cutechess-cli \
+-engine name="MyBot" cmd="/Users/kevinvermaat/Documents/testprojects/chess-challenge-kevin/Chess-Challenge/bin/Release/net6.0/Chess-Challenge" arg="uci" arg="MyBot" \
+-engine name="Clairvoyance" cmd="/Users/kevinvermaat/Documents/testprojects/chess-challenge-kevin/Chess-Challenge/bin/Release/net6.0/Chess-Challenge" arg="uci" arg="Clairvoyance" \
+-openings file=/Users/kevinvermaat/Documents/testprojects/chess-challenge-kevin/Chess-Challenge/resources/Custom/UHO_XXL_+0.80_+1.09.pgn format=pgn order=random plies=8 \
+-each proto=uci tc=10+0.1 restart=on \
+-concurrency 5 -maxmoves 200 -rounds 100 \
+-sprt elo0=0 elo1=10 alpha=0.10 beta=0.10 \
+-pgnout sprt.pgn
+
+# MyBot vs MrX
+/Users/kevinvermaat/Documents/testprojects/CuteChess1.3.0/CuteChess/build/cutechess-cli \
+-engine name="MyBot" cmd="/Users/kevinvermaat/Documents/testprojects/chess-challenge-kevin/Chess-Challenge/bin/Release/net6.0/Chess-Challenge" arg="uci" arg="MyBot" \
+-engine name="MrX" cmd="/Users/kevinvermaat/Documents/testprojects/chess-challenge-kevin/Chess-Challenge/bin/Release/net6.0/Chess-Challenge" arg="uci" arg="MrX" \
+-openings file=/Users/kevinvermaat/Documents/testprojects/chess-challenge-kevin/Chess-Challenge/resources/Custom/UHO_XXL_+0.80_+1.09.pgn format=pgn order=random plies=8 \
+-each proto=uci tc=10+0.1 restart=on \
+-concurrency 5 -maxmoves 200 -rounds 100 \
+-sprt elo0=0 elo1=10 alpha=0.10 beta=0.10 \
+-pgnout sprt.pgn
+
+# MyBot vs ErwanF
+/Users/kevinvermaat/Documents/testprojects/CuteChess1.3.0/CuteChess/build/cutechess-cli \
+-engine name="MyBot" cmd="/Users/kevinvermaat/Documents/testprojects/chess-challenge-kevin/Chess-Challenge/bin/Release/net6.0/Chess-Challenge" arg="uci" arg="MyBot" \
+-engine name="ErwanF" cmd="/Users/kevinvermaat/Documents/testprojects/chess-challenge-kevin/Chess-Challenge/bin/Release/net6.0/Chess-Challenge" arg="uci" arg="ErwanF" \
+-openings file=/Users/kevinvermaat/Documents/testprojects/chess-challenge-kevin/Chess-Challenge/resources/Custom/UHO_XXL_+0.80_+1.09.pgn format=pgn order=random plies=8 \
+-each proto=uci tc=10+0.1 restart=on \
+-concurrency 5 -maxmoves 200 -rounds 100 \
+-sprt elo0=0 elo1=10 alpha=0.10 beta=0.10 \
+-pgnout sprt.pgn
+
+# MyBot vs ErwanF2
+/Users/kevinvermaat/Documents/testprojects/CuteChess1.3.0/CuteChess/build/cutechess-cli \
+-engine name="MyBot" cmd="/Users/kevinvermaat/Documents/testprojects/chess-challenge-kevin/Chess-Challenge/bin/Release/net6.0/Chess-Challenge" arg="uci" arg="MyBot" \
+-engine name="ErwanF2" cmd="/Users/kevinvermaat/Documents/testprojects/chess-challenge-kevin/Chess-Challenge/bin/Release/net6.0/Chess-Challenge" arg="uci" arg="ErwanF2" \
+-openings file=/Users/kevinvermaat/Documents/testprojects/chess-challenge-kevin/Chess-Challenge/resources/Custom/UHO_XXL_+0.80_+1.09.pgn format=pgn order=random plies=8 \
+-each proto=uci tc=10+0.1 restart=on \
+-concurrency 5 -maxmoves 200 -rounds 100 \
+-sprt elo0=0 elo1=10 alpha=0.10 beta=0.10 \
+-pgnout sprt.pgn
+
+# Smol400 vs ErwanF2
+/Users/kevinvermaat/Documents/testprojects/CuteChess1.3.0/CuteChess/build/cutechess-cli \
+-engine name="Smol400" cmd="/Users/kevinvermaat/Documents/testprojects/chess-challenge-kevin/Chess-Challenge/bin/Release/net6.0/Chess-Challenge" arg="uci" arg="Smol400" \
+-engine name="ErwanF2" cmd="/Users/kevinvermaat/Documents/testprojects/chess-challenge-kevin/Chess-Challenge/bin/Release/net6.0/Chess-Challenge" arg="uci" arg="ErwanF2" \
+-openings file=/Users/kevinvermaat/Documents/testprojects/chess-challenge-kevin/Chess-Challenge/resources/Custom/UHO_XXL_+0.80_+1.09.pgn format=pgn order=random plies=8 \
+-each proto=uci tc=10+0.1 restart=on \
+-concurrency 5 -maxmoves 200 -rounds 100 \
+-sprt elo0=0 elo1=10 alpha=0.10 beta=0.10 \
+-pgnout sprt.pgn
+
+# MyBot vs Smol400
+/Users/kevinvermaat/Documents/testprojects/CuteChess1.3.0/CuteChess/build/cutechess-cli \
+-engine name="MyBot" cmd="/Users/kevinvermaat/Documents/testprojects/chess-challenge-kevin/Chess-Challenge/bin/Release/net6.0/Chess-Challenge" arg="uci" arg="MyBot" \
+-engine name="Smol400" cmd="/Users/kevinvermaat/Documents/testprojects/chess-challenge-kevin/Chess-Challenge/bin/Release/net6.0/Chess-Challenge" arg="uci" arg="Smol400" \
+-openings file=/Users/kevinvermaat/Documents/testprojects/chess-challenge-kevin/Chess-Challenge/resources/Custom/UHO_XXL_+0.80_+1.09.pgn format=pgn order=random plies=8 \
+-each proto=uci tc=10+0.1 restart=on \
+-concurrency 5 -maxmoves 200 -rounds 100 \
 -sprt elo0=0 elo1=10 alpha=0.10 beta=0.10 \
 -pgnout sprt.pgn
