@@ -23,7 +23,7 @@ public class ErwanF2 : IChessBot
     public Move Think(Board board, Timer timer)
     {
         int searchDepth = 0;
-        
+
         // Defining the search function inside Think to use board and timer directly
         double Search(int depth, double alpha, double beta, double currentEval)
         {
@@ -38,7 +38,7 @@ public class ErwanF2 : IChessBot
             {
                 // Beta cutoff check
                 if (alpha >= beta)
-                    return beta;
+                    break;
 
                 board.MakeMove(move);
 

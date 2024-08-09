@@ -1,8 +1,6 @@
 using System;
-using System.Diagnostics;
 using System.Linq;
 using ChessChallenge.API;
-using ChessChallenge.Example;
 
 public static class DebugHelper
 {
@@ -52,12 +50,6 @@ public static class DebugHelper
         string bestMoveString =
             $"{textColor}pv{tealColor} {bestMove.MovePieceType} - {bestMove.StartSquare.Name}{bestMove.TargetSquare.Name}";
 
-        Console.WriteLine(string.Join(" ",
-            new string[]
-            {
-                depthString, timeString, bestEvalString, nodesString, qnodesString, npsString, bestMoveString
-            }));
+        Console.WriteLine(string.Join(" ", depthString, timeString, bestEvalString, nodesString, qnodesString, npsString, bestMoveString));
     }
-    
-
 }

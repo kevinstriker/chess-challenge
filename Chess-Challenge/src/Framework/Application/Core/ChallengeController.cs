@@ -28,10 +28,14 @@ namespace ChessChallenge.Application
             
             // Template
             NegaMaxBot, 
+            NegaMaxBot2, 
             
             // 400 bots
             TinyV1,
-            Smol400,
+            NoSqrt,
+            Fox,
+            Tyrant400,
+            TokenStealer,
             
             // 200 bots
             ErwanF,             // Place 1
@@ -59,10 +63,14 @@ namespace ChessChallenge.Application
                 
                 // Template
                 PlayerType.NegaMaxBot => new NegaMaxBot(),
+                PlayerType.NegaMaxBot2 => new NegaMaxBot2(),
                 
                 // 400 bots
                 PlayerType.TinyV1 => new TinyV1(), 
-                PlayerType.Smol400 => new Smol400(), 
+                PlayerType.NoSqrt => new NoSqrt(), 
+                PlayerType.Fox => new Fox(), 
+                PlayerType.Tyrant400 => new Tyrant400(), 
+                PlayerType.TokenStealer => new TokenStealer(), 
                 
                 // 200 bots
                 PlayerType.ErwanF => new ErwanF(), 
@@ -272,10 +280,14 @@ namespace ChessChallenge.Application
                 
                 // Template bots
                 PlayerType.NegaMaxBot => new ChessPlayer(new NegaMaxBot(), type, GameDurationMilliseconds),
+                PlayerType.NegaMaxBot2 => new ChessPlayer(new NegaMaxBot2(), type, GameDurationMilliseconds),
 
                 // 400 bots
                 PlayerType.TinyV1 => new ChessPlayer(new TinyV1(), type, GameDurationMilliseconds),
-                PlayerType.Smol400 => new ChessPlayer(new Smol400(), type, GameDurationMilliseconds),
+                PlayerType.NoSqrt => new ChessPlayer(new NoSqrt(), type, GameDurationMilliseconds),
+                PlayerType.Fox => new ChessPlayer(new Fox(), type, GameDurationMilliseconds),
+                PlayerType.Tyrant400 => new ChessPlayer(new Tyrant400(), type, GameDurationMilliseconds),
+                PlayerType.TokenStealer => new ChessPlayer(new TokenStealer(), type, GameDurationMilliseconds),
                 
                 // 200 bots
                 PlayerType.ErwanF => new ChessPlayer(new ErwanF(), type, GameDurationMilliseconds),
